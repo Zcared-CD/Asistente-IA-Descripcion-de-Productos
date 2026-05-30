@@ -1,0 +1,13 @@
+# Node (Frontend)
+frontend/node_modules/
+frontend/dist/
+
+# Python (Backend)
+backend/venv/
+backend/__pycache__/
+backend/*.sqlite3
+
+# Variables de entorno y secretos
+.env
+frontend/.env
+backend/.env
