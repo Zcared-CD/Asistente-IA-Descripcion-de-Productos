@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import Chatbot from './components/ui/Chatbot';
-
-// Importar todas las páginas (Ajustado a tus archivos locales)
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -10,21 +8,19 @@ import Checkout from './pages/Checkout';
 import Contacto from './pages/Contacto';
 
 export default function App() {
-  // Estado Global de la aplicación
   const [currentView, setCurrentView] = useState('home');
   const [user, setUser] = useState(null);
   const [isPremium, setIsPremium] = useState(false);
   const [credits, setCredits] = useState(3);
   const [selectedPlan, setSelectedPlan] = useState(null);
 
-  // Función para cerrar sesión globalmente
   const handleLogout = () => {
     setUser(null);
     setIsPremium(false);
     setCurrentView('home');
   };
 
-  // Agrupamos las propiedades para no repetir código al pasarlo a cada página
+
   const pageProps = {
     currentView, 
     setCurrentView, 
