@@ -3,7 +3,8 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
-from .views import RegisterView, ProfileView, GenerarDescripcionView, HistorialDescripcionesView
+
+from .views import RegisterView, ProfileView, GenerarDescripcionView, HistorialDescripcionesView, ActivarPremiumView
 
 urlpatterns = [
     
@@ -15,4 +16,5 @@ urlpatterns = [
     path('profile/', ProfileView.as_view(), name='profile'),
     path('generar-descripcion/', GenerarDescripcionView.as_view(), name='generar_descripcion'),
     path('historial/', HistorialDescripcionesView.as_view(), name='historial_descripciones'),
+    path('activar-premium/', ActivarPremiumView.as_view(), name='activar_premium'),
 ]

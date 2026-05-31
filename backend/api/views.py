@@ -7,7 +7,14 @@ from rest_framework import status
 from .models import ProductoGenerado
 from .serializers import ProductoGeneradoSerializer
 from django.db import transaction
+from django_ratelimit.decorators import ratelimit
+from django.utils.decorators import method_decorator
 
+
+@method_decorator(
+    ratelimit(key='ip', rate='3/m', method='POST'),
+    name='post'
+)
 
 class RegisterView(generics.CreateAPIView):
     queryset = CustomUser.objects.all()
@@ -20,6 +27,12 @@ class ProfileView(generics.RetrieveAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+@method_decorator(
+    ratelimit(key='user', rate='20/h', method='POST'),
+    name='post'
+)
 
 class GenerarDescripcionView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
@@ -103,6 +116,10 @@ class GenerarDescripcionView(APIView):
         }, status=status.HTTP_201_CREATED)
     
 
+@method_decorator(
+    ratelimit(key='user', rate='20/h', method='GET'),
+    name='get'
+)
 class HistorialDescripcionesView(generics.ListAPIView):
     serializer_class = ProductoGeneradoSerializer
     permission_classes = (permissions.IsAuthenticated,)
@@ -111,3 +128,40 @@ class HistorialDescripcionesView(generics.ListAPIView):
         return ProductoGenerado.objects.filter(
             usuario=self.request.user
         ).order_by('-fecha_creacion')
+    
+class ActivarPremiumView(APIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def post(self, request):
+        user = request.user
+
+        plan = request.data.get('plan', '').strip()
+        precio = request.data.get('precio')
+
+        planes_validos = {
+            'PyMes': 10,
+            'Corporativo': 59,
+        }
+
+        if plan not in planes_validos:
+            return Response(
+                {'error': 'Plan no válido.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if float(precio) != planes_validos[plan]:
+            return Response(
+                {'error': 'Precio no válido para este plan.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user.is_premium = True
+        user.creditos = 999999
+        user.save(update_fields=['is_premium', 'creditos'])
+
+        return Response({
+            'message': f'Plan {plan} activado correctamente.',
+            'is_premium': user.is_premium,
+            'creditos': user.creditos,
+            'plan': plan
+        }, status=status.HTTP_200_OK)

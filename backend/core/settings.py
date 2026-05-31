@@ -1,15 +1,16 @@
 from pathlib import Path
 from datetime import timedelta
+from decouple import config, Csv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+RATELIMIT_ENABLE = False
 
+SECRET_KEY = config('SECRET_KEY')
 
-SECRET_KEY = 'django-insecure-*^sa#q*eqlwku!k&^(xb9=4t$ui3c8#fj)r90m7$_djtyb2+6a'
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-DEBUG = True
-
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost', cast=Csv())
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -21,6 +22,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'api',
+    'django_ratelimit',
 ]
 
 MIDDLEWARE = [
@@ -76,8 +78,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
-
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'UTC'
@@ -89,16 +89,18 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     )
 }
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-]
+
+CORS_ALLOWED_ORIGINS = config(
+    'CORS_ALLOWED_ORIGINS',
+    default='http://localhost:5173',
+    cast=Csv()
+)
 
 AUTH_USER_MODEL = 'api.CustomUser'
 
@@ -112,8 +114,20 @@ REST_FRAMEWORK = {
     )
 }
 
+
+
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
+
+RATELIMIT_USE_CACHE = "default"
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+    }
+}
+
+SILENCED_SYSTEM_CHECKS = ["django_ratelimit.E003", "django_ratelimit.W001"]
