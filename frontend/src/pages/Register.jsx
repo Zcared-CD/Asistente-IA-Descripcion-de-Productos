@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { User, Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, Phone, Sparkles } from 'lucide-react';
+import axios from 'axios'; // <-- Importamos axios
 import GoogleButton from '../components/forms/GoogleButton';
 import NetworkParticles from '../components/ui/NetworkParticles';
 
-export default function Register({ setUser, setCurrentView }) {
+// Añadimos setIsPremium y setCredits a las props
+export default function Register({ setUser, setIsPremium, setCredits, setCurrentView }) {
   const [regName, setRegName] = useState('');
   const [regLastName, setRegLastName] = useState('');
   const [regPhone, setRegPhone] = useState('');
@@ -12,6 +14,7 @@ export default function Register({ setUser, setCurrentView }) {
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
   const [showRegPassword, setShowRegPassword] = useState(false);
   const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // Estado de carga
 
   const calculatePasswordStrength = (pwd) => {
     let strength = 0;
@@ -34,7 +37,7 @@ export default function Register({ setUser, setCurrentView }) {
 
   const strengthData = getStrengthIndicator();
 
-  const handleRegisterSubmit = (e) => {
+  const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     if (!regName || !regLastName || !regEmail || !regPhone || !regPassword || !regConfirmPassword) {
       alert("Todos los campos son obligatorios.");
@@ -49,9 +52,57 @@ export default function Register({ setUser, setCurrentView }) {
       return;
     }
 
-    setUser({ name: `${regName} ${regLastName}`, email: regEmail });
-    alert("¡Registro exitoso! Bienvenido a Carlsoft Product IA.");
-    setCurrentView('home');
+    setIsLoading(true);
+
+    try {
+      // 1. Petición para REGISTRAR al usuario en Django
+      await axios.post('http://127.0.0.1:8000/api/register/', {
+        email: regEmail,
+        password: regPassword,
+        first_name: regName,
+        last_name: regLastName,
+        telefono: regPhone
+      });
+
+      // 2. AUTO-LOGIN: Ya que se registró, pedimos sus tokens inmediatamente
+      const loginResponse = await axios.post('http://127.0.0.1:8000/api/login/', {
+        username: regEmail,
+        password: regPassword
+      });
+
+      const tokenData = loginResponse.data;
+      localStorage.setItem('access_token', tokenData.access);
+      localStorage.setItem('refresh_token', tokenData.refresh);
+
+      // 3. Obtener el perfil para llenar los datos de React (créditos, premium, etc.)
+      const profileResponse = await axios.get('http://127.0.0.1:8000/api/profile/', {
+        headers: {
+          'Authorization': `Bearer ${tokenData.access}`
+        }
+      });
+
+      const profileData = profileResponse.data;
+      
+      setUser({ 
+        name: profileData.first_name ? `${profileData.first_name} ${profileData.last_name}` : profileData.username, 
+        email: profileData.email 
+      });
+      setIsPremium(profileData.is_premium);
+      setCredits(profileData.creditos);
+
+      alert("¡Registro exitoso! Bienvenido a Carlsoft Product IA.");
+      setCurrentView('home');
+
+    } catch (error) {
+      if (error.response && error.response.data) {
+        // Django nos dice exactamente qué falló (ej. el correo ya existe)
+        alert("Error al registrar: " + JSON.stringify(error.response.data));
+      } else {
+        alert("Error de conexión con el servidor. Verifica que Django esté encendido.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -153,8 +204,16 @@ export default function Register({ setUser, setCurrentView }) {
               )}
             </div>
 
-            <button type="submit" className="w-full py-3.5 mt-2 rounded-xl font-bold text-white bg-[#6b2122] hover:bg-[#52191a] transition-all hover:shadow-lg hover:-translate-y-1 flex items-center justify-center gap-2">
-              Crear Cuenta <ArrowRight className="w-5 h-5" />
+            <button 
+              type="submit" 
+              disabled={isLoading}
+              className={`w-full py-3.5 mt-2 rounded-xl font-bold text-white transition-all flex items-center justify-center gap-2 ${isLoading ? 'bg-[#4a1516] cursor-not-allowed opacity-80' : 'bg-[#6b2122] hover:bg-[#52191a] hover:shadow-lg hover:-translate-y-1'}`}
+            >
+              {isLoading ? (
+                 <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Creando cuenta...</>
+              ) : (
+                 <>Crear Cuenta <ArrowRight className="w-5 h-5" /></>
+              )}
             </button>
           </form>
 

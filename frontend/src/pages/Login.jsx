@@ -1,21 +1,67 @@
 import React, { useState } from 'react';
 import { User, Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft } from 'lucide-react';
+import axios from 'axios'; // <-- Importamos axios
 import GoogleButton from '../components/forms/GoogleButton';
 import NetworkParticles from '../components/ui/NetworkParticles';
 
-export default function Login({ setUser, setCurrentView }) {
+export default function Login({ setUser, setIsPremium, setCredits, setCurrentView }) {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
     if (!loginEmail || !loginPassword) {
       alert("Por favor completa todos los campos.");
       return;
     }
-    setUser({ name: 'Usuario Carlsoft', email: loginEmail });
-    setCurrentView('home');
+
+    setIsLoading(true);
+
+    try {
+      // 1. Petición a Django para obtener los Tokens usando Axios
+      const loginResponse = await axios.post('http://127.0.0.1:8000/api/login/', {
+        username: loginEmail,
+        password: loginPassword
+      });
+
+      const tokenData = loginResponse.data;
+      
+      // 2. Guardar los tokens en el navegador
+      localStorage.setItem('access_token', tokenData.access);
+      localStorage.setItem('refresh_token', tokenData.refresh);
+
+      // 3. Obtener el perfil del usuario pasando el Token de seguridad
+      const profileResponse = await axios.get('http://127.0.0.1:8000/api/profile/', {
+        headers: {
+          'Authorization': `Bearer ${tokenData.access}`
+        }
+      });
+
+      const profileData = profileResponse.data;
+      
+      // 4. Actualizar la información global en React
+      setUser({ 
+        name: profileData.first_name ? `${profileData.first_name} ${profileData.last_name}` : profileData.username, 
+        email: profileData.email 
+      });
+      setIsPremium(profileData.is_premium);
+      setCredits(profileData.creditos);
+      
+      // Redirigir al inicio exitosamente
+      setCurrentView('home');
+
+    } catch (error) {
+      // Axios maneja automáticamente los errores (ej. Error 401: No autorizado)
+      if (error.response && error.response.status === 401) {
+        alert("Credenciales incorrectas. Verifica tu correo y contraseña.");
+      } else {
+        alert("Error de conexión con el servidor. Verifica que Django esté encendido.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -66,8 +112,16 @@ export default function Login({ setUser, setCurrentView }) {
                 </button>
               </div>
             </div>
-            <button type="submit" className="w-full py-3.5 mt-2 rounded-xl font-bold text-white bg-[#6b2122] hover:bg-[#52191a] transition-all hover:shadow-lg hover:-translate-y-1 flex items-center justify-center gap-2">
-              Iniciar Sesión <ArrowRight className="w-5 h-5" />
+            <button 
+              type="submit" 
+              disabled={isLoading}
+              className={`w-full py-3.5 mt-2 rounded-xl font-bold text-white transition-all flex items-center justify-center gap-2 ${isLoading ? 'bg-[#4a1516] cursor-not-allowed opacity-80' : 'bg-[#6b2122] hover:bg-[#52191a] hover:shadow-lg hover:-translate-y-1'}`}
+            >
+              {isLoading ? (
+                 <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Iniciando...</>
+              ) : (
+                 <>Iniciar Sesión <ArrowRight className="w-5 h-5" /></>
+              )}
             </button>
           </form>
           <p className="text-center text-sm text-gray-500 mt-6">
