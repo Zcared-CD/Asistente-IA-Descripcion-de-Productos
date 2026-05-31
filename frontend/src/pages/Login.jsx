@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft } from 'lucide-react';
-import axios from 'axios'; // <-- Importamos axios
+import api from '../api/axios';
 import GoogleButton from '../components/forms/GoogleButton';
 import NetworkParticles from '../components/ui/NetworkParticles';
 
@@ -21,7 +21,7 @@ export default function Login({ setUser, setIsPremium, setCredits, setCurrentVie
 
     try {
       // 1. Petición a Django para obtener los Tokens usando Axios
-      const loginResponse = await axios.post('http://127.0.0.1:8000/api/login/', {
+      const loginResponse = await api.post('/login/', {
         username: loginEmail,
         password: loginPassword
       });
@@ -33,7 +33,7 @@ export default function Login({ setUser, setIsPremium, setCredits, setCurrentVie
       localStorage.setItem('refresh_token', tokenData.refresh);
 
       // 3. Obtener el perfil del usuario pasando el Token de seguridad
-      const profileResponse = await axios.get('http://127.0.0.1:8000/api/profile/', {
+      const profileResponse = await api.get('/profile/', {
         headers: {
           'Authorization': `Bearer ${tokenData.access}`
         }

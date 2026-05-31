@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import api from '../api/axios';
 import { Camera, Sparkles, FileText, Image as ImageIcon, Download, Lock, Crown, Cpu, Type, Tag, Brain } from 'lucide-react';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
@@ -35,32 +36,76 @@ export default function Home({ currentView, setCurrentView, user, isPremium, cre
     }
   };
 
-  const handleGenerate = (e) => {
-    e.preventDefault();
-    if (!user) {
-      alert("Por favor inicia sesión o regístrate primero.");
-      setCurrentView('login');
-      return;
-    }
-    if (!isPremium && credits <= 0) {
-      alert("No tienes créditos. ¡Actualiza a un plan Premium!");
+const handleGenerate = async (e) => {
+  e.preventDefault();
+
+  if (!user) {
+    alert("Por favor inicia sesión primero.");
+    setCurrentView('login');
+    return;
+  }
+
+  const token = localStorage.getItem('access_token');
+
+  if (!token) {
+    alert("Tu sesión expiró.");
+    setCurrentView('login');
+    return;
+  }
+
+  setIsGenerating(true);
+
+  try {
+
+    const response = await api.post(
+      '/generar-descripcion/',
+      {
+        nombre_producto: productName,
+        palabras_clave: productDetails
+      }
+    );
+
+    const data = response.data;
+
+    setCredits(data.creditos);
+
+    setResult({
+      title: data.producto.titulo_generado,
+      description: data.producto.descripcion_generada,
+      tags: productDetails
+        .split(',')
+        .map(tag => tag.trim())
+        .filter(Boolean),
+
+      imageUrl:
+        imageFile ||
+        'https://images.unsplash.com/photo-1505740420928-5e560c06d30e'
+    });
+
+  } catch (error) {
+
+    if (error.response?.status === 403) {
+      alert("No tienes créditos disponibles.");
       setCurrentView('costs');
-      return;
+    }
+    else if (error.response?.status === 401) {
+
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+
+      alert("Tu sesión expiró.");
+
+      setCurrentView('login');
+    }
+    else {
+      console.error(error);
+      alert("Error al generar la descripción.");
     }
 
-    setIsGenerating(true);
-    if (!isPremium) setCredits(prev => prev - 1);
-
-    setTimeout(() => {
-      setResult({
-        title: `Campaña Destacada: ${productName || 'Producto Innovador'}`,
-        description: `Presentamos ${productName || 'nuestra última innovación'}, la solución diseñada específicamente para optimizar tu día a día. Con características avanzadas enfocadas en ${productDetails || 'tecnología de alto rendimiento'}, este producto refleja la excelencia de nuestra ingeniería.\n\nDescubre el poder de la transparencia y la calidad premium con Carlsoft Solution.`,
-        tags: ['Innovación', 'Premium', 'Carlsoft Tech'],
-        imageUrl: imageFile || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w1MTB8MHwxfHNlYXJjaHwxfHxwcm9kdWN0fGVufDB8fHx8MTcxMTk5MzYwMA&ixlib=rb-4.0.3&q=80&w=400'
-      });
-      setIsGenerating(false);
-    }, 2500);
-  };
+  } finally {
+    setIsGenerating(false);
+  }
+};
 
   return (
     <div className="flex flex-col min-h-screen w-full">

@@ -6,9 +6,9 @@ export default function Navbar({ currentView, setCurrentView, user, isPremium, c
     <nav className="relative z-10 px-6 py-4 flex justify-between items-center max-w-7xl mx-auto">
       <div className="flex items-center gap-3 cursor-pointer" onClick={() => setCurrentView('home')}>
         <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center shadow-lg overflow-hidden border border-white/20 p-1">
-          <img 
-            src="RUTA_DE_TU_LOGO_AQUI.png" 
-            alt="Logo Carlsoft" 
+          <img
+            src="RUTA_DE_TU_LOGO_AQUI.png"
+            alt="Logo Carlsoft"
             className="w-full h-full object-contain"
             onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
           />
@@ -19,7 +19,7 @@ export default function Navbar({ currentView, setCurrentView, user, isPremium, c
           <p className="text-xs text-rose-200/80 font-light tracking-widest">PRODUCT IA</p>
         </div>
       </div>
-      
+
       <div className="hidden md:flex items-center gap-8 text-sm font-medium text-rose-100">
         <button onClick={() => setCurrentView('home')} className={`hover:text-white transition ${currentView === 'home' ? 'text-white border-b-2 border-amber-300' : ''}`}>INICIO</button>
         <button onClick={() => setCurrentView('costs')} className={`hover:text-white transition ${currentView === 'costs' ? 'text-white border-b-2 border-amber-300' : ''}`}>COSTOS</button>
@@ -54,6 +54,14 @@ export default function Navbar({ currentView, setCurrentView, user, isPremium, c
             <button onClick={handleLogout} className="text-rose-200 hover:text-white transition ml-2 p-1 rounded hover:bg-white/10" title="Cerrar Sesión">
               <LogOut className="w-5 h-5" />
             </button>
+            {user && (
+              <button
+                onClick={() => setCurrentView('historial')}
+                className={`hover:text-white transition ${currentView === 'historial' ? 'text-white border-b-2 border-amber-300' : ''}`}
+              >
+                HISTORIAL
+              </button>
+            )}
           </div>
         )}
       </div>

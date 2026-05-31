@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, Phone, Sparkles } from 'lucide-react';
-import axios from 'axios'; // <-- Importamos axios
+import api from '../api/axios';
 import GoogleButton from '../components/forms/GoogleButton';
 import NetworkParticles from '../components/ui/NetworkParticles';
 
@@ -56,7 +56,7 @@ export default function Register({ setUser, setIsPremium, setCredits, setCurrent
 
     try {
       // 1. Petición para REGISTRAR al usuario en Django
-      await axios.post('http://127.0.0.1:8000/api/register/', {
+      await api.post('/register/', {
         email: regEmail,
         password: regPassword,
         first_name: regName,
@@ -65,7 +65,7 @@ export default function Register({ setUser, setIsPremium, setCredits, setCurrent
       });
 
       // 2. AUTO-LOGIN: Ya que se registró, pedimos sus tokens inmediatamente
-      const loginResponse = await axios.post('http://127.0.0.1:8000/api/login/', {
+      const loginResponse = await api.post('/login/', {
         username: regEmail,
         password: regPassword
       });
@@ -75,7 +75,7 @@ export default function Register({ setUser, setIsPremium, setCredits, setCurrent
       localStorage.setItem('refresh_token', tokenData.refresh);
 
       // 3. Obtener el perfil para llenar los datos de React (créditos, premium, etc.)
-      const profileResponse = await axios.get('http://127.0.0.1:8000/api/profile/', {
+      const profileResponse = await api.get('/profile/', {
         headers: {
           'Authorization': `Bearer ${tokenData.access}`
         }
