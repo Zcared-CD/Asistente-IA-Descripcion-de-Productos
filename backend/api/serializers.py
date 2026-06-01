@@ -58,7 +58,8 @@ class ProductoGeneradoSerializer(serializers.ModelSerializer):
             'palabras_clave',
             'titulo_generado',
             'descripcion_generada',
-            'fecha_creacion'
+            'fecha_creacion',
+            'imagen_producto'
         )
         read_only_fields = (
             'id',
@@ -80,5 +81,4 @@ class ContactoSerializer(serializers.ModelSerializer):
                 "El mensaje debe contener al menos 10 caracteres."
             )
         return value
-    
     

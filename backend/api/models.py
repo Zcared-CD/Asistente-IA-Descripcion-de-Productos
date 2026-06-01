@@ -14,6 +14,12 @@ class ProductoGenerado(models.Model):
     usuario = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     nombre_producto = models.CharField(max_length=200)
     palabras_clave = models.TextField()
+
+    imagen_producto = models.ImageField(
+        upload_to='productos/',
+        blank=True,
+        null=True
+    )
     
     titulo_generado = models.CharField(max_length=255, blank=True)
     descripcion_generada = models.TextField(blank=True)
@@ -42,3 +48,6 @@ class Contacto(models.Model):
 
     def __str__(self):
         return f"{self.nombre} {self.apellido}"
+    
+
+

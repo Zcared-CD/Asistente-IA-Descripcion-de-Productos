@@ -13,7 +13,8 @@ from .models import Contacto
 from .serializers import ContactoSerializer
 from django.conf import settings
 from google import genai
-
+from rest_framework.parsers import MultiPartParser, FormParser
+import base64
 
 
 @method_decorator(
@@ -41,12 +42,14 @@ class ProfileView(generics.RetrieveAPIView):
 
 class GenerarDescripcionView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
+    parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
         user = request.user
 
         nombre_producto = request.data.get('nombre_producto', '').strip()
         palabras_clave = request.data.get('palabras_clave', '').strip()
+        imagen_producto = request.FILES.get('imagen_producto')
 
         if not nombre_producto:
             return Response(
@@ -106,9 +109,9 @@ class GenerarDescripcionView(APIView):
             client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
             prompt = f"""
-            Eres un experto en marketing, e-commerce, branding y redacción publicitaria.
+            Eres un experto en marketing, e-commerce, Eres un experto en marketing, e-commerce, análisis visual de productos, retail, tecnología, hogar, moda, herramientas, cocina, decoración y redacción publicitaria.
 
-            Tu tarea es generar contenido profesional para vender un producto.
+            Tu tarea es generar contenido profesional para vender un producto, Analiza el producto usando la información escrita y, si hay imagen, también lo que se observa visualmente.
 
             Nombre del producto:
             {nombre_producto}
@@ -120,7 +123,9 @@ class GenerarDescripcionView(APIView):
             - Responde únicamente con el contenido solicitado.
             - No saludes.
             - No digas "con gusto", "claro", "aquí tienes" ni frases introductorias.
+            - Si algo se infiere visualmente, dilo como "aparenta", "parece" o "podría".
             - No inventes datos técnicos exactos si no fueron proporcionados.
+            - Si el producto parece orientado a hombre, mujer o unisex, indícalo como recomendación comercial, no como afirmación absoluta.
             - Si falta información, usa frases generales pero profesionales.
             - Escribe en español.
             - Usa tono comercial, claro, moderno y persuasivo.
@@ -133,11 +138,14 @@ class GenerarDescripcionView(APIView):
             DESCRIPCIÓN:
             Una descripción detallada del producto en 2 o 3 párrafos.
 
-            COLOR Y ESTILO:
-            Describe el color, estilo visual o apariencia probable solo si se menciona o se puede inferir de forma general.
+            ANÁLISIS VISUAL:
+            Describe colores, forma, estilo, diseño, detalles visibles y apariencia general.
 
             DISEÑO:
             Describe el diseño del producto de forma comercial.
+
+            TIPO DE PRODUCTO:
+            Indica qué tipo de producto parece ser.
 
             BENEFICIOS:
             - Beneficio 1
@@ -145,16 +153,36 @@ class GenerarDescripcionView(APIView):
             - Beneficio 3
 
             PÚBLICO OBJETIVO:
-            Describe para quién es ideal este producto.
+            Indica si parece ideal para hombre, mujer, unisex, jóvenes, deportistas, uso casual, profesional, hogar, trabajo, etc.
+
+            DESCRIPCIÓN COMERCIAL:
+            Redacta una descripción profesional de 2 a 3 párrafos.
 
             HASHTAGS:
             #Etiqueta1 #Etiqueta2 #Etiqueta3 #Etiqueta4 #Etiqueta5
             """
 
-            response = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=prompt
-            )
+            if imagen_producto:
+                image_bytes = imagen_producto.read()
+                imagen_producto.seek(0)
+
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=[
+                        {
+                            "inline_data": {
+                                "mime_type": imagen_producto.content_type,
+                                "data": base64.b64encode(image_bytes).decode("utf-8"),
+                            }
+                        },
+                       prompt
+                    ]
+                )
+            else:
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=prompt
+                )
 
             texto_generado = response.text.strip()
 
@@ -166,6 +194,7 @@ class GenerarDescripcionView(APIView):
                 usuario=user,
                 nombre_producto=nombre_producto,
                 palabras_clave=palabras_clave,
+                imagen_producto=imagen_producto,
                 titulo_generado=titulo_generado,
                 descripcion_generada=descripcion_generada
             )
@@ -274,12 +303,62 @@ class ChatbotView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        respuesta = (
-            "Gracias por tu mensaje. Soy el asistente de Carlsoft Product IA. "
-            "Por ahora puedo ayudarte con información sobre el generador de descripciones, "
-            "planes, créditos, soporte y funcionamiento general de la plataforma."
-        )
+        if not settings.GEMINI_API_KEY:
+            return Response(
+                {'error': 'Gemini API Key no configurada.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
-        return Response({
-            'respuesta': respuesta
-        }, status=status.HTTP_200_OK)
+        try:
+            client = genai.Client(api_key=settings.GEMINI_API_KEY)
+
+            prompt = f"""
+Eres el asistente virtual de Carlsoft Product IA.
+
+Tu trabajo es ayudar a los usuarios de una plataforma que genera descripciones de productos con inteligencia artificial.
+
+Puedes responder sobre:
+- cómo generar descripciones de productos
+- cómo usar palabras clave
+- cómo subir imágenes de productos
+- créditos disponibles
+- planes premium
+- soporte técnico
+- recomendaciones para mejorar descripciones
+- dudas generales sobre la plataforma
+
+Reglas:
+- Responde en español.
+- Sé amable, claro y breve.
+- No inventes funciones que el sistema todavía no tiene.
+- No digas que puedes procesar pagos reales; por ahora los pagos son simulados.
+- No pidas datos sensibles de tarjetas o contraseñas.
+- Si preguntan algo fuera del sistema, responde de forma útil pero corta.
+- Si preguntan por precios, menciona: plan básico gratis, PyMes $10/mes y Corporativo $59/mes.
+- Si preguntan por créditos, explica que el plan gratuito tiene créditos limitados y los planes premium tienen mayores beneficios.
+- Si preguntan por imágenes, explica que pueden subir una imagen del producto para mejorar el análisis visual.
+
+Mensaje del usuario:
+{mensaje}
+"""
+
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt
+            )
+
+            respuesta = response.text.strip()
+
+            return Response({
+                'respuesta': respuesta
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            print("ERROR GEMINI CHATBOT:", e)
+
+            return Response(
+                {
+                    'error': 'No pude generar una respuesta en este momento. Intenta nuevamente.'
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
