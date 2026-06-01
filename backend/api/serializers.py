@@ -80,3 +80,5 @@ class ContactoSerializer(serializers.ModelSerializer):
                 "El mensaje debe contener al menos 10 caracteres."
             )
         return value
+    
+    

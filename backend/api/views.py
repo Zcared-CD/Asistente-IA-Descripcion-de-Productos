@@ -11,6 +11,9 @@ from django_ratelimit.decorators import ratelimit
 from django.utils.decorators import method_decorator
 from .models import Contacto
 from .serializers import ContactoSerializer
+from django.conf import settings
+from google import genai
+
 
 
 @method_decorator(
@@ -94,14 +97,70 @@ class GenerarDescripcionView(APIView):
                 user.creditos -= 1
                 user.save(update_fields=['creditos'])
 
-            titulo_generado = f"Campaña Destacada: {nombre_producto}"
-
-            descripcion_generada = (
-                f"Presentamos {nombre_producto}, un producto diseñado para destacar en el mercado.\n\n"
-                f"Características principales: {palabras_clave}.\n\n"
-                f"Esta descripción fue generada para ayudarte a crear una presentación clara, atractiva "
-                f"y profesional para tus clientes."
+            if not settings.GEMINI_API_KEY:
+              return Response(
+                  {'error': 'Gemini API Key no configurada.'},
+                  status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+            client = genai.Client(api_key=settings.GEMINI_API_KEY)
+
+            prompt = f"""
+            Eres un experto en marketing, e-commerce, branding y redacción publicitaria.
+
+            Tu tarea es generar contenido profesional para vender un producto.
+
+            Nombre del producto:
+            {nombre_producto}
+
+            Detalles proporcionados por el usuario:
+            {palabras_clave}
+
+            Reglas obligatorias:
+            - Responde únicamente con el contenido solicitado.
+            - No saludes.
+            - No digas "con gusto", "claro", "aquí tienes" ni frases introductorias.
+            - No inventes datos técnicos exactos si no fueron proporcionados.
+            - Si falta información, usa frases generales pero profesionales.
+            - Escribe en español.
+            - Usa tono comercial, claro, moderno y persuasivo.
+
+            Formato exacto de respuesta:
+
+            TÍTULO:
+            Un título comercial corto y atractivo.
+
+            DESCRIPCIÓN:
+            Una descripción detallada del producto en 2 o 3 párrafos.
+
+            COLOR Y ESTILO:
+            Describe el color, estilo visual o apariencia probable solo si se menciona o se puede inferir de forma general.
+
+            DISEÑO:
+            Describe el diseño del producto de forma comercial.
+
+            BENEFICIOS:
+            - Beneficio 1
+            - Beneficio 2
+            - Beneficio 3
+
+            PÚBLICO OBJETIVO:
+            Describe para quién es ideal este producto.
+
+            HASHTAGS:
+            #Etiqueta1 #Etiqueta2 #Etiqueta3 #Etiqueta4 #Etiqueta5
+            """
+
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt
+            )
+
+            texto_generado = response.text.strip()
+
+            lineas = texto_generado.splitlines()
+            titulo_generado = f"Descripción IA: {nombre_producto}"
+            descripcion_generada = texto_generado
 
             producto = ProductoGenerado.objects.create(
                 usuario=user,
@@ -181,3 +240,46 @@ class ContactoView(generics.CreateAPIView):
     queryset = Contacto.objects.all()
     serializer_class = ContactoSerializer
     permission_classes = (permissions.AllowAny,)
+
+
+@method_decorator(
+    ratelimit(
+        key='ip',
+        rate='30/h',
+        method='POST'
+    ),
+    name='post'
+)
+class ChatbotView(APIView):
+    permission_classes = (permissions.AllowAny,)
+
+    def post(self, request):
+        mensaje = request.data.get('mensaje', '').strip()
+
+        if not mensaje:
+            return Response(
+                {'error': 'El mensaje no puede estar vacío.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if len(mensaje) < 2:
+            return Response(
+                {'error': 'El mensaje es demasiado corto.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if len(mensaje) > 500:
+            return Response(
+                {'error': 'El mensaje no puede superar los 500 caracteres.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        respuesta = (
+            "Gracias por tu mensaje. Soy el asistente de Carlsoft Product IA. "
+            "Por ahora puedo ayudarte con información sobre el generador de descripciones, "
+            "planes, créditos, soporte y funcionamiento general de la plataforma."
+        )
+
+        return Response({
+            'respuesta': respuesta
+        }, status=status.HTTP_200_OK)

@@ -114,7 +114,7 @@ REST_FRAMEWORK = {
     )
 }
 
-
+GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
