@@ -9,6 +9,8 @@ from .serializers import ProductoGeneradoSerializer
 from django.db import transaction
 from django_ratelimit.decorators import ratelimit
 from django.utils.decorators import method_decorator
+from .models import Contacto
+from .serializers import ContactoSerializer
 
 
 @method_decorator(
@@ -165,3 +167,17 @@ class ActivarPremiumView(APIView):
             'creditos': user.creditos,
             'plan': plan
         }, status=status.HTTP_200_OK)
+    
+
+@method_decorator(
+    ratelimit(
+        key='ip',
+        rate='5/h',
+        method='POST'
+    ),
+    name='post'
+)
+class ContactoView(generics.CreateAPIView):
+    queryset = Contacto.objects.all()
+    serializer_class = ContactoSerializer
+    permission_classes = (permissions.AllowAny,)

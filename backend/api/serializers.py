@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from .models import CustomUser
 from .models import CustomUser, ProductoGenerado
+from .models import Contacto
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True)
@@ -65,3 +66,17 @@ class ProductoGeneradoSerializer(serializers.ModelSerializer):
             'descripcion_generada',
             'fecha_creacion'
         )
+
+class ContactoSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Contacto
+        fields = '__all__'
+        read_only_fields = ('fecha_creacion',)
+
+    def validate_mensaje(self, value):
+        if len(value.strip()) < 10:
+            raise serializers.ValidationError(
+                "El mensaje debe contener al menos 10 caracteres."
+            )
+        return value
