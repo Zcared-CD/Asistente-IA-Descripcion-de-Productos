@@ -59,7 +59,16 @@ class ProductoGeneradoSerializer(serializers.ModelSerializer):
             'titulo_generado',
             'descripcion_generada',
             'fecha_creacion',
-            'imagen_producto'
+            'imagen_producto',
+            'marca',
+            'categoria',
+            'color',
+            'material',
+            'publico_objetivo',
+            'tono',
+            'instruccion_imagen',
+            'prompt_imagen_publicitaria',
+            'imagen_publicitaria',
         )
         read_only_fields = (
             'id',
