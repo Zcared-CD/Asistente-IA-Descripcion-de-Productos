@@ -16,6 +16,7 @@ from .views import (
     EliminarProductoGeneradoView,
     CrearCheckoutSessionView,
     StripeWebhookView,
+    CrearPortalClienteView,
 )
 
 urlpatterns = [
@@ -52,4 +53,9 @@ urlpatterns = [
         name="crear_checkout_session",
     ),
     path("stripe/webhook/", StripeWebhookView.as_view(), name="stripe_webhook"),
+    path(
+        "stripe/customer-portal/",
+        CrearPortalClienteView.as_view(),
+        name="stripe_customer_portal",
+    ),
 ]

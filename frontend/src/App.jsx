@@ -16,6 +16,9 @@ export default function App() {
   const [credits, setCredits] = useState(3);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [userAviso, setUserAviso] = useState(null);
+  const [userPlan, setUserPlan] = useState('FREE');
+  const [fechaFinPlan, setFechaFinPlan] = useState(null);
+  const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem('access_token');
@@ -26,6 +29,9 @@ export default function App() {
     setCredits(3);
     setUserAviso(null);
     setCurrentView('home');
+    setUserPlan('FREE');
+    setFechaFinPlan(null);
+    setCancelAtPeriodEnd(false);
   };
 
   useEffect(() => {
@@ -36,7 +42,7 @@ export default function App() {
 
       try {
         const response = await api.get('/profile/');
-          
+
         const profileData = response.data;
 
         setUser({
@@ -48,6 +54,7 @@ export default function App() {
 
         setIsPremium(profileData.is_premium);
         setCredits(profileData.creditos);
+        
 
         const statusResponse = await api.get('/user-status/');
         const statusData = statusResponse.data;
@@ -55,14 +62,24 @@ export default function App() {
         setUserAviso(statusData.aviso);
 
         setIsPremium(statusData.is_premium);
+        setUserPlan(statusData.plan);
+        setFechaFinPlan(statusData.fecha_fin_plan);
+        setCancelAtPeriodEnd(statusData.cancel_at_period_end);
         setCredits(statusData.creditos);
 
       } catch (error) {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        setUser(null);
-        setIsPremium(false);
-        setCredits(3);
+        console.error("ERROR CARGANDO PERFIL:", error);
+
+        if (error.response?.status === 401) {
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          setUser(null);
+          setIsPremium(false);
+          setCredits(3);
+          setUserPlan('FREE');
+          setFechaFinPlan(null);
+          setCancelAtPeriodEnd(false);
+        }
       }
     };
 
@@ -83,7 +100,13 @@ export default function App() {
     selectedPlan,
     setSelectedPlan,
     userAviso,
-    setUserAviso
+    setUserAviso,
+    userPlan,
+    fechaFinPlan,
+    cancelAtPeriodEnd,
+    setUserPlan,
+    setFechaFinPlan,
+    setCancelAtPeriodEnd,
   };
 
   return (
@@ -92,7 +115,11 @@ export default function App() {
 
       {userAviso && user && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] bg-[#6b2122] text-white px-6 py-3 rounded-full shadow-2xl border border-white/20 animate-fade-in">
-          <span className="font-semibold">{userAviso}</span>
+          <span className="font-semibold">
+            {cancelAtPeriodEnd && fechaFinPlan
+              ? `Suscripción cancelada. Premium activo hasta ${fechaFinPlan}.`
+              : userAviso}
+          </span>
           <button
             onClick={() => setUserAviso(null)}
             className="ml-4 text-rose-200 hover:text-white font-bold"

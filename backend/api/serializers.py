@@ -18,7 +18,10 @@ class UserSerializer(serializers.ModelSerializer):
             'telefono',
             'is_premium',
             'creditos',
-            'password'
+            'password',
+            "plan",
+            "fecha_fin_plan",
+            "cancel_at_period_end",
         )
         read_only_fields = ('id', 'username', 'is_premium', 'creditos')
 

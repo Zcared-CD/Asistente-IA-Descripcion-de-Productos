@@ -491,6 +491,7 @@ class UserStatusView(APIView):
                 "plan": user.plan,
                 "creditos": user.creditos,
                 "fecha_fin_plan": user.fecha_fin_plan,
+                "cancel_at_period_end": user.cancel_at_period_end,
                 "dias_restantes": dias_restantes,
                 "aviso": aviso,
             }
@@ -610,7 +611,8 @@ class EliminarProductoGeneradoView(APIView):
         return Response(
             {"message": "Producto eliminado del historial."}, status=status.HTTP_200_OK
         )
-        
+
+
 class CrearCheckoutSessionView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
@@ -626,8 +628,7 @@ class CrearCheckoutSessionView(APIView):
 
         if plan not in precios:
             return Response(
-                {"error": "Plan no válido."},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "Plan no válido."}, status=status.HTTP_400_BAD_REQUEST
             )
 
         try:
@@ -652,7 +653,7 @@ class CrearCheckoutSessionView(APIView):
                         "user_id": request.user.id,
                         "plan": plan,
                     }
-                }
+                },
             )
 
             return Response({"checkout_url": session.url})
@@ -661,9 +662,10 @@ class CrearCheckoutSessionView(APIView):
             print("ERROR STRIPE CHECKOUT:", e)
             return Response(
                 {"error": "No se pudo crear la sesión de pago."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-            
+
+
 @method_decorator(csrf_exempt, name="dispatch")
 class StripeWebhookView(APIView):
     permission_classes = (permissions.AllowAny,)
@@ -688,7 +690,6 @@ class StripeWebhookView(APIView):
             session = event["data"]["object"]
 
             metadata = session.metadata
-
             user_id = metadata.user_id if metadata and hasattr(metadata, "user_id") else None
             plan = metadata.plan if metadata and hasattr(metadata, "plan") else None
 
@@ -709,6 +710,7 @@ class StripeWebhookView(APIView):
             user.stripe_customer_id = customer_id
             user.stripe_subscription_id = subscription_id
             user.subscription_status = "active"
+            user.cancel_at_period_end = False
             user.fecha_inicio_plan = timezone.now().date()
             user.fecha_fin_plan = timezone.now().date() + timedelta(days=30)
 
@@ -719,8 +721,99 @@ class StripeWebhookView(APIView):
                 "stripe_customer_id",
                 "stripe_subscription_id",
                 "subscription_status",
+                "cancel_at_period_end",
                 "fecha_inicio_plan",
                 "fecha_fin_plan",
             ])
 
+        elif event["type"] == "customer.subscription.deleted":
+            subscription = event["data"]["object"]
+            subscription_id = subscription.id
+
+            try:
+                user = CustomUser.objects.get(
+                    stripe_subscription_id=subscription_id
+                )
+            except CustomUser.DoesNotExist:
+                return Response({"status": "user_not_found"}, status=200)
+            
+
+            user.is_premium = False
+            user.plan = "FREE"
+            user.creditos = 3
+            user.subscription_status = "canceled"
+            user.fecha_fin_plan = None
+            user.cancel_at_period_end = False
+
+            user.save(update_fields=[
+                "is_premium",
+                "plan",
+                "creditos",
+                "subscription_status",
+                "fecha_fin_plan",
+                "cancel_at_period_end",
+            ])
+
+        elif event["type"] == "customer.subscription.updated":
+            subscription = event["data"]["object"]
+            
+            subscription_id = subscription.id
+            status_subscription = subscription.status
+            
+
+            try:
+                user = CustomUser.objects.get(
+                    stripe_subscription_id=subscription_id
+                )
+            except CustomUser.DoesNotExist:
+                return Response({"status": "user_not_found"}, status=200)
+
+            user.subscription_status = status_subscription
+            user.cancel_at_period_end = subscription.cancel_at_period_end
+
+            if status_subscription in ["canceled", "unpaid", "incomplete_expired"]:
+                user.is_premium = False
+                user.plan = "FREE"
+                user.creditos = 3
+                user.fecha_fin_plan = None
+                user.cancel_at_period_end = False
+
+            user.save(update_fields=[
+                "is_premium",
+                "plan",
+                "creditos",
+                "subscription_status",
+                "fecha_fin_plan",
+                "cancel_at_period_end",
+            ])
+
         return Response({"status": "success"}, status=200)
+
+class CrearPortalClienteView(APIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def post(self, request):
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+
+        user = request.user
+
+        if not user.stripe_customer_id:
+            return Response(
+                {"error": "No existe cliente Stripe asociado."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            session = stripe.billing_portal.Session.create(
+                customer=user.stripe_customer_id, return_url=settings.FRONTEND_URL
+            )
+
+            return Response({"portal_url": session.url})
+
+        except Exception as e:
+            print("ERROR STRIPE PORTAL:", e)
+
+            return Response(
+                {"error": "No se pudo abrir el portal."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
