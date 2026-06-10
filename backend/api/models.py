@@ -11,6 +11,9 @@ class CustomUser(AbstractUser):
     plan = models.CharField(max_length=20, default="FREE")
     fecha_inicio_plan = models.DateField(blank=True, null=True)
     fecha_fin_plan = models.DateField(blank=True, null=True)
+    stripe_customer_id = models.CharField(max_length=255, blank=True, null=True)
+    stripe_subscription_id = models.CharField(max_length=255, blank=True, null=True)
+    subscription_status = models.CharField(max_length=50, default="inactive")
 
     def __str__(self):
         return self.email or self.username

@@ -17,6 +17,10 @@ from rest_framework.parsers import MultiPartParser, FormParser
 import base64
 from django.utils import timezone
 from datetime import timedelta
+import stripe
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 
 
 @method_decorator(ratelimit(key="ip", rate="3/m", method="POST"), name="post")
@@ -606,3 +610,117 @@ class EliminarProductoGeneradoView(APIView):
         return Response(
             {"message": "Producto eliminado del historial."}, status=status.HTTP_200_OK
         )
+        
+class CrearCheckoutSessionView(APIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def post(self, request):
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+
+        plan = request.data.get("plan")
+
+        precios = {
+            "PYMES": settings.STRIPE_PRICE_PYMES,
+            "CORPORATIVO": settings.STRIPE_PRICE_CORPORATIVO,
+        }
+
+        if plan not in precios:
+            return Response(
+                {"error": "Plan no válido."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            session = stripe.checkout.Session.create(
+                mode="subscription",
+                payment_method_types=["card"],
+                line_items=[
+                    {
+                        "price": precios[plan],
+                        "quantity": 1,
+                    }
+                ],
+                customer_email=request.user.email,
+                success_url=f"{settings.FRONTEND_URL}?payment=success",
+                cancel_url=f"{settings.FRONTEND_URL}?payment=cancel",
+                metadata={
+                    "user_id": request.user.id,
+                    "plan": plan,
+                },
+                subscription_data={
+                    "metadata": {
+                        "user_id": request.user.id,
+                        "plan": plan,
+                    }
+                }
+            )
+
+            return Response({"checkout_url": session.url})
+
+        except Exception as e:
+            print("ERROR STRIPE CHECKOUT:", e)
+            return Response(
+                {"error": "No se pudo crear la sesión de pago."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+            
+@method_decorator(csrf_exempt, name="dispatch")
+class StripeWebhookView(APIView):
+    permission_classes = (permissions.AllowAny,)
+    authentication_classes = []
+
+    def post(self, request):
+        payload = request.body
+        sig_header = request.META.get("HTTP_STRIPE_SIGNATURE")
+
+        try:
+            event = stripe.Webhook.construct_event(
+                payload,
+                sig_header,
+                settings.STRIPE_WEBHOOK_SECRET
+            )
+        except ValueError:
+            return Response({"error": "Payload inválido."}, status=400)
+        except stripe.error.SignatureVerificationError:
+            return Response({"error": "Firma inválida."}, status=400)
+
+        if event["type"] == "checkout.session.completed":
+            session = event["data"]["object"]
+
+            metadata = session.metadata
+
+            user_id = metadata.user_id if metadata and hasattr(metadata, "user_id") else None
+            plan = metadata.plan if metadata and hasattr(metadata, "plan") else None
+
+            subscription_id = session.subscription
+            customer_id = session.customer
+
+            if not user_id or not plan:
+                return Response({"error": "Metadata incompleta."}, status=400)
+
+            try:
+                user = CustomUser.objects.get(id=user_id)
+            except CustomUser.DoesNotExist:
+                return Response({"error": "Usuario no encontrado."}, status=404)
+
+            user.is_premium = True
+            user.plan = plan
+            user.creditos = 999999
+            user.stripe_customer_id = customer_id
+            user.stripe_subscription_id = subscription_id
+            user.subscription_status = "active"
+            user.fecha_inicio_plan = timezone.now().date()
+            user.fecha_fin_plan = timezone.now().date() + timedelta(days=30)
+
+            user.save(update_fields=[
+                "is_premium",
+                "plan",
+                "creditos",
+                "stripe_customer_id",
+                "stripe_subscription_id",
+                "subscription_status",
+                "fecha_inicio_plan",
+                "fecha_fin_plan",
+            ])
+
+        return Response({"status": "success"}, status=200)

@@ -3,15 +3,42 @@ import { CreditCard, Building, Lock } from 'lucide-react';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
 import NetworkParticles from '../components/ui/NetworkParticles';
+import api from '../api/axios';
 
 export default function Checkout({ currentView, setCurrentView, user, isPremium, setIsPremium, credits, handleLogout, selectedPlan }) {
   const [paymentMethod, setPaymentMethod] = useState('card');
 
-  const handlePaymentSubmit = (e) => {
+  const handlePaymentSubmit = async (e) => {
     e.preventDefault();
-    alert(`¡Pago procesado con éxito vía ${paymentMethod.toUpperCase()}! Ahora eres un usuario Premium de Carlsoft.`);
-    setIsPremium(true);
-    setCurrentView('home');
+
+    if (!user) {
+      alert('Debes iniciar sesión antes de comprar un plan.');
+      setCurrentView('login');
+      return;
+    }
+
+    try {
+      const planKey =
+        selectedPlan.name.toLowerCase().includes('corporativo')
+          ? 'CORPORATIVO'
+          : 'PYMES';
+
+      const response = await api.post('/stripe/create-checkout-session/', {
+        plan: planKey
+      });
+
+      window.location.href = response.data.checkout_url;
+
+    } catch (error) {
+      console.error(error);
+
+      if (error.response?.status === 401) {
+        alert('Tu sesión expiró. Inicia sesión nuevamente.');
+        setCurrentView('login');
+      } else {
+        alert(error.response?.data?.error || 'No se pudo iniciar el pago.');
+      }
+    }
   };
 
   if (!selectedPlan) {
@@ -24,12 +51,12 @@ export default function Checkout({ currentView, setCurrentView, user, isPremium,
       <header className="relative bg-[#6b2122] text-[#fdfbf7] overflow-hidden shadow-xl shrink-0 w-full">
         <NetworkParticles />
         <Navbar currentView={currentView} setCurrentView={setCurrentView} user={user} isPremium={isPremium} credits={credits} handleLogout={handleLogout} />
-        
+
         <div className="relative z-10 py-12 px-6 max-w-4xl mx-auto text-center animate-fade-in">
           <h1 className="text-4xl font-extrabold mb-4">Completar Compra</h1>
           <p className="text-rose-100 font-light text-lg">Estás a un paso de potenciar tu negocio con IA.</p>
         </div>
-        
+
         <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none z-10" style={{ transform: 'translateY(1px)' }}>
           <svg className="relative block w-full h-12 md:h-20" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
             <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V95.8C-1,95.8,73.1,86.6,144,79.2,204.3,72.9,263.6,67.2,321.39,56.44Z" fill="#fdfbf7"></path>
@@ -46,7 +73,7 @@ export default function Checkout({ currentView, setCurrentView, user, isPremium,
             <h2 className="text-2xl font-bold text-gray-800 mb-6">Detalles de Facturación</h2>
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
               <button onClick={() => setPaymentMethod('card')} className={`flex-1 flex flex-col items-center justify-center p-4 rounded-xl border-2 transition ${paymentMethod === 'card' ? 'border-[#6b2122] bg-rose-50 text-[#6b2122]' : 'border-gray-200 text-gray-500 hover:border-gray-300'}`}><CreditCard className="w-8 h-8 mb-2" /><span className="font-semibold text-sm">Tarjeta de Crédito</span></button>
-              <button onClick={() => setPaymentMethod('paypal')} className={`flex-1 flex flex-col items-center justify-center p-4 rounded-xl border-2 transition ${paymentMethod === 'paypal' ? 'border-[#003087] bg-blue-50 text-[#003087]' : 'border-gray-200 text-gray-500 hover:border-gray-300'}`}><svg className="w-8 h-8 mb-2 fill-current" viewBox="0 0 24 24"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106z"/></svg><span className="font-semibold text-sm">PayPal</span></button>
+              <button onClick={() => setPaymentMethod('paypal')} className={`flex-1 flex flex-col items-center justify-center p-4 rounded-xl border-2 transition ${paymentMethod === 'paypal' ? 'border-[#003087] bg-blue-50 text-[#003087]' : 'border-gray-200 text-gray-500 hover:border-gray-300'}`}><svg className="w-8 h-8 mb-2 fill-current" viewBox="0 0 24 24"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106z" /></svg><span className="font-semibold text-sm">PayPal</span></button>
               <button onClick={() => setPaymentMethod('transfer')} className={`flex-1 flex flex-col items-center justify-center p-4 rounded-xl border-2 transition ${paymentMethod === 'transfer' ? 'border-green-600 bg-green-50 text-green-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'}`}><Building className="w-8 h-8 mb-2" /><span className="font-semibold text-sm">Transferencia</span></button>
             </div>
             <form onSubmit={handlePaymentSubmit}>
@@ -68,7 +95,7 @@ export default function Checkout({ currentView, setCurrentView, user, isPremium,
               )}
               {paymentMethod === 'transfer' && (
                 <div className="bg-green-50 border border-green-200 rounded-xl p-6 animate-fade-in text-green-900">
-                  <h4 className="font-bold mb-4 flex items-center gap-2"><Building className="w-5 h-5"/> Datos Bancarios de Carlsoft</h4>
+                  <h4 className="font-bold mb-4 flex items-center gap-2"><Building className="w-5 h-5" /> Datos Bancarios de Carlsoft</h4>
                   <p className="text-sm mb-2"><strong>Banco:</strong> BBVA México</p>
                   <p className="text-sm mb-2"><strong>CLABE:</strong> 012345678901234567</p>
                   <p className="text-sm mb-4"><strong>Titular:</strong> Carlsoft Solution S.A. de C.V.</p>
@@ -80,7 +107,7 @@ export default function Checkout({ currentView, setCurrentView, user, isPremium,
                   <Lock className="w-4 h-4" /> Pagar Seguro - ${selectedPlan.price}.00 USD
                 </button>
               )}
-              <p className="text-center text-xs text-gray-400 mt-4 flex items-center justify-center gap-1"><Lock className="w-3 h-3"/> Transacción encriptada de 256-bits</p>
+              <p className="text-center text-xs text-gray-400 mt-4 flex items-center justify-center gap-1"><Lock className="w-3 h-3" /> Transacción encriptada de 256-bits</p>
             </form>
           </div>
           <div className="lg:col-span-4">

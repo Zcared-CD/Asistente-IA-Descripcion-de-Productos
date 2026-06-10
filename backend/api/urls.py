@@ -9,12 +9,13 @@ from .views import (
     ProfileView,
     GenerarDescripcionView,
     HistorialDescripcionesView,
-    ActivarPremiumView,
     ContactoView,
     ChatbotView,
     UserStatusView,
     GenerarImagenPublicitariaView,
     EliminarProductoGeneradoView,
+    CrearCheckoutSessionView,
+    StripeWebhookView,
 )
 
 urlpatterns = [
@@ -32,7 +33,6 @@ urlpatterns = [
         HistorialDescripcionesView.as_view(),
         name="historial_descripciones",
     ),
-    path("activar-premium/", ActivarPremiumView.as_view(), name="activar_premium"),
     path("contacto/", ContactoView.as_view(), name="contacto"),
     path("chatbot/", ChatbotView.as_view(), name="chatbot"),
     path("user-status/", UserStatusView.as_view(), name="user_status"),
@@ -46,4 +46,10 @@ urlpatterns = [
         EliminarProductoGeneradoView.as_view(),
         name="eliminar_producto_historial",
     ),
+    path(
+        "stripe/create-checkout-session/",
+        CrearCheckoutSessionView.as_view(),
+        name="crear_checkout_session",
+    ),
+    path("stripe/webhook/", StripeWebhookView.as_view(), name="stripe_webhook"),
 ]

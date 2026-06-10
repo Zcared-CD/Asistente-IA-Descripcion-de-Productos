@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { Clock, FileText, Copy, AlertCircle } from 'lucide-react';
+import {
+  Clock,
+  FileText,
+  Copy,
+  AlertCircle,
+  Trash2,
+  Search,
+  Image as ImageIcon,
+} from 'lucide-react';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
 import NetworkParticles from '../components/ui/NetworkParticles';
@@ -9,6 +16,9 @@ import api from '../api/axios';
 export default function Historial({ currentView, setCurrentView, user, isPremium, credits, handleLogout }) {
   const [historial, setHistorial] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [busqueda, setBusqueda] = useState('');
+  const [productoSeleccionado, setProductoSeleccionado] = useState(null);
+  const [mostrarModal, setMostrarModal] = useState(false);
 
   useEffect(() => {
     const cargarHistorial = async () => {
@@ -20,12 +30,7 @@ export default function Historial({ currentView, setCurrentView, user, isPremium
       }
 
       try {
-        const response = await api.get('/historial/', {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-
+        const response = await api.get('/historial/');
         setHistorial(response.data);
       } catch (error) {
         console.error(error);
@@ -48,11 +53,36 @@ export default function Historial({ currentView, setCurrentView, user, isPremium
   const copiarTexto = async (texto) => {
     try {
       await navigator.clipboard.writeText(texto);
-      alert('Descripción copiada al portapapeles.');
+      alert('Texto copiado al portapapeles.');
     } catch {
       alert('No se pudo copiar el texto.');
     }
   };
+
+  const eliminarItem = async (id) => {
+    const confirmar = window.confirm('¿Seguro que quieres eliminar esta descripción del historial?');
+
+    if (!confirmar) return;
+
+    try {
+      await api.delete(`/historial/${id}/eliminar/`);
+
+      setHistorial((prev) => prev.filter((item) => item.id !== id));
+    } catch (error) {
+      console.error(error);
+      alert('No se pudo eliminar el registro.');
+    }
+  };
+
+  const verDetalle = (producto) => {
+    setProductoSeleccionado(producto);
+    setMostrarModal(true);
+  };
+
+  const historialFiltrado = historial.filter((item) => {
+    const texto = `${item.nombre_producto} ${item.marca || ''} ${item.categoria || ''} ${item.palabras_clave || ''}`.toLowerCase();
+    return texto.includes(busqueda.toLowerCase());
+  });
 
   return (
     <div className="flex flex-col min-h-screen w-full">
@@ -70,7 +100,7 @@ export default function Historial({ currentView, setCurrentView, user, isPremium
         <div className="relative z-10 py-12 px-6 max-w-4xl mx-auto text-center animate-fade-in">
           <h1 className="text-4xl font-extrabold mb-4">Historial de Descripciones</h1>
           <p className="text-rose-100 font-light text-lg">
-            Consulta todas las descripciones generadas con tu cuenta.
+            Consulta, copia y administra tus productos generados.
           </p>
         </div>
 
@@ -82,16 +112,29 @@ export default function Historial({ currentView, setCurrentView, user, isPremium
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-12 flex-1 w-full animate-fade-in">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 mb-8 flex items-center gap-3">
+          <Search className="w-5 h-5 text-[#6b2122]" />
+          <input
+            type="text"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar por producto, marca, categoría o palabra clave..."
+            className="w-full outline-none text-gray-700"
+          />
+        </div>
+
         {isLoading ? (
           <div className="bg-white rounded-2xl shadow-lg p-10 text-center">
             <div className="w-8 h-8 border-4 border-[#6b2122] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-gray-600 font-medium">Cargando historial...</p>
           </div>
-        ) : historial.length === 0 ? (
+        ) : historialFiltrado.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-lg p-10 text-center border border-gray-100">
             <AlertCircle className="w-12 h-12 text-[#6b2122] mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Aún no tienes descripciones</h2>
-            <p className="text-gray-500 mb-6">Genera tu primera descripción desde el inicio.</p>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">No hay resultados</h2>
+            <p className="text-gray-500 mb-6">
+              Genera una descripción o intenta con otra búsqueda.
+            </p>
             <button
               onClick={() => setCurrentView('home')}
               className="bg-[#6b2122] text-white px-6 py-3 rounded-xl font-bold hover:bg-[#52191a] transition"
@@ -101,54 +144,184 @@ export default function Historial({ currentView, setCurrentView, user, isPremium
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6">
-            {historial.map((item) => (
-              <div key={item.id} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition">
-                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
-                  <div>
-                    <h2 className="text-2xl font-extrabold text-[#6b2122] flex items-center gap-2">
-                      <FileText className="w-6 h-6" />
-                      {item.titulo_generado}
-                    </h2>
-                    <p className="text-sm text-gray-500 mt-2 flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      {new Date(item.fecha_creacion).toLocaleString()}
-                    </p>
+            {historialFiltrado.map((item) => (
+              <div
+                key={item.id}
+                className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-4">
+                  <div className="md:col-span-1 bg-[#fdfbf7] min-h-[220px] flex items-center justify-center border-r border-gray-100">
+                    {item.imagen_producto ? (
+                      <img
+                        src={item.imagen_producto}
+                        alt={item.nombre_producto}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="text-center text-gray-400">
+                        <ImageIcon className="w-12 h-12 mx-auto mb-2" />
+                        <p className="text-sm">Sin imagen</p>
+                      </div>
+                    )}
                   </div>
 
-                  <button
-                    onClick={() => copiarTexto(item.descripcion_generada)}
-                    className="flex items-center justify-center gap-2 bg-rose-50 text-[#6b2122] px-4 py-2 rounded-xl font-bold border border-rose-100 hover:bg-rose-100 transition"
-                  >
-                    <Copy className="w-4 h-4" />
-                    Copiar
-                  </button>
-                </div>
+                  <div className="md:col-span-3 p-6">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
+                      <div>
+                        <h2 className="text-2xl font-extrabold text-[#6b2122] flex items-center gap-2">
+                          <FileText className="w-6 h-6" />
+                          {item.nombre_producto}
+                        </h2>
 
-                <div className="mb-4">
-                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">
-                    Producto
-                  </p>
-                  <p className="text-gray-800 font-semibold">{item.nombre_producto}</p>
-                </div>
+                        <p className="text-sm text-gray-500 mt-2 flex items-center gap-2">
+                          <Clock className="w-4 h-4" />
+                          {new Date(item.fecha_creacion).toLocaleString()}
+                        </p>
+                      </div>
 
-                <div className="mb-4">
-                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">
-                    Palabras clave
-                  </p>
-                  <p className="text-gray-600">{item.palabras_clave}</p>
-                </div>
+                      <div className="flex flex-wrap gap-2">
 
-                <div className="bg-[#fdfbf7] border border-gray-100 rounded-xl p-5">
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                    {item.descripcion_generada}
-                  </p>
+                        <button
+                          onClick={() => verDetalle(item)}
+                          className="flex items-center justify-center gap-2 bg-[#6b2122] text-white px-4 py-2 rounded-xl font-bold hover:bg-[#52191a] transition"
+                        >
+                          Ver detalle
+                        </button>
+                        <button
+                          onClick={() => copiarTexto(item.descripcion_generada)}
+                          className="flex items-center justify-center gap-2 bg-rose-50 text-[#6b2122] px-4 py-2 rounded-xl font-bold border border-rose-100 hover:bg-rose-100 transition"
+                        >
+                          <Copy className="w-4 h-4" />
+                          Copiar
+                        </button>
+
+                        <button
+                          onClick={() => eliminarItem(item.id)}
+                          className="flex items-center justify-center gap-2 bg-red-50 text-red-600 px-4 py-2 rounded-xl font-bold border border-red-100 hover:bg-red-100 transition"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                      <div className="bg-[#fdfbf7] p-3 rounded-xl border border-gray-100">
+                        <p className="text-xs font-bold uppercase text-gray-400">Marca</p>
+                        <p className="font-semibold text-gray-700">{item.marca || 'No especificada'}</p>
+                      </div>
+
+                      <div className="bg-[#fdfbf7] p-3 rounded-xl border border-gray-100">
+                        <p className="text-xs font-bold uppercase text-gray-400">Categoría</p>
+                        <p className="font-semibold text-gray-700">{item.categoria || 'General'}</p>
+                      </div>
+
+                      <div className="bg-[#fdfbf7] p-3 rounded-xl border border-gray-100">
+                        <p className="text-xs font-bold uppercase text-gray-400">Tono</p>
+                        <p className="font-semibold text-gray-700">{item.tono || 'Comercial'}</p>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#fdfbf7] border border-gray-100 rounded-xl p-5 max-h-64 overflow-y-auto">
+                      <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                        {item.descripcion_generada}
+                      </p>
+                    </div>
+
+                    {item.prompt_imagen_publicitaria && (
+                      <div className="mt-4 bg-rose-50 border border-rose-100 rounded-xl p-4">
+                        <p className="text-xs font-bold uppercase text-[#6b2122] mb-1">
+                          Prompt publicitario
+                        </p>
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                          {item.prompt_imagen_publicitaria}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
       </main>
+      {mostrarModal && productoSeleccionado && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
 
+            <div className="sticky top-0 bg-white border-b p-5 flex justify-between items-center">
+              <h2 className="text-2xl font-extrabold text-[#6b2122]">
+                {productoSeleccionado.nombre_producto}
+              </h2>
+
+              <button
+                onClick={() => setMostrarModal(false)}
+                className="text-gray-500 hover:text-red-500 text-xl font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6">
+
+              {productoSeleccionado.imagen_producto && (
+                <img
+                  src={productoSeleccionado.imagen_producto}
+                  alt={productoSeleccionado.nombre_producto}
+                  className="w-full h-72 object-cover rounded-xl mb-6"
+                />
+              )}
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+
+                <div className="bg-[#fdfbf7] p-4 rounded-xl border">
+                  <p className="text-xs text-gray-400 uppercase">Marca</p>
+                  <p className="font-bold">{productoSeleccionado.marca || 'N/A'}</p>
+                </div>
+
+                <div className="bg-[#fdfbf7] p-4 rounded-xl border">
+                  <p className="text-xs text-gray-400 uppercase">Categoría</p>
+                  <p className="font-bold">{productoSeleccionado.categoria || 'N/A'}</p>
+                </div>
+
+                <div className="bg-[#fdfbf7] p-4 rounded-xl border">
+                  <p className="text-xs text-gray-400 uppercase">Color</p>
+                  <p className="font-bold">{productoSeleccionado.color || 'N/A'}</p>
+                </div>
+
+                <div className="bg-[#fdfbf7] p-4 rounded-xl border">
+                  <p className="text-xs text-gray-400 uppercase">Material</p>
+                  <p className="font-bold">{productoSeleccionado.material || 'N/A'}</p>
+                </div>
+
+              </div>
+
+              <div className="bg-[#fdfbf7] rounded-xl border p-5 mb-6">
+                <h3 className="font-bold text-[#6b2122] mb-3">
+                  Descripción Generada
+                </h3>
+
+                <p className="whitespace-pre-wrap text-gray-700">
+                  {productoSeleccionado.descripcion_generada}
+                </p>
+              </div>
+
+              {productoSeleccionado.prompt_imagen_publicitaria && (
+                <div className="bg-rose-50 rounded-xl border border-rose-100 p-5">
+                  <h3 className="font-bold text-[#6b2122] mb-3">
+                    Prompt Publicitario
+                  </h3>
+
+                  <p className="whitespace-pre-wrap text-gray-700">
+                    {productoSeleccionado.prompt_imagen_publicitaria}
+                  </p>
+                </div>
+              )}
+
+            </div>
+          </div>
+        </div>
+      )}
       <Footer setCurrentView={setCurrentView} />
     </div>
   );

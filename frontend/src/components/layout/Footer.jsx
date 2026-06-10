@@ -12,7 +12,7 @@ export default function Footer({ setCurrentView }) {
         <div>
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="w-5 h-5 text-amber-300" />
-            <span className="text-lg font-bold text-white tracking-wide">Carlsoft Solution</span>
+            <span className="text-lg font-bold text-white tracking-wide">Carlsoft Product IA</span>
           </div>
           <p className="max-w-xs text-rose-200 leading-relaxed">Transparencia, documentación legal y canales de comunicación directa con nuestro equipo de ingeniería.</p>
         </div>

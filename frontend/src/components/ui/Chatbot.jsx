@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import api from '../../api/axios';
 import { Bot, X, Send } from 'lucide-react';
 
 export default function Chatbot() {
@@ -11,19 +12,57 @@ export default function Chatbot() {
   const [isBotTyping, setIsBotTyping] = useState(false);
   const chatEndRef = useRef(null);
 
-  const handleSendChatMessage = (e) => {
+  const handleSendChatMessage = async (e) => {
     e.preventDefault();
+
     if (!chatMessage.trim()) return;
 
-    const userMsg = chatMessage;
-    setChatHistory(prev => [...prev, { sender: 'user', text: userMsg }]);
+    const userMsg = chatMessage.trim();
+
+    setChatHistory(prev => [
+      ...prev,
+      { sender: 'user', text: userMsg }
+    ]);
+
     setChatMessage('');
     setIsBotTyping(true);
 
-    setTimeout(() => {
-      setChatHistory(prev => [...prev, { sender: 'bot', text: 'Estoy analizando tu solicitud. Pronto un experto de Carlsoft te dará la mejor solución.' }]);
+    try {
+      const response = await api.post('/chatbot/', {
+        mensaje: userMsg
+      });
+
+      setChatHistory(prev => [
+        ...prev,
+        {
+          sender: 'bot',
+          text: response.data.respuesta
+        }
+      ]);
+
+    } catch (error) {
+      console.error(error);
+
+      let errorMessage = 'No pude responder en este momento. Intenta nuevamente.';
+
+      if (error.response?.status === 429) {
+        errorMessage = 'Has enviado demasiados mensajes. Intenta más tarde.';
+      }
+
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+
+      setChatHistory(prev => [
+        ...prev,
+        {
+          sender: 'bot',
+          text: errorMessage
+        }
+      ]);
+    } finally {
       setIsBotTyping(false);
-    }, 1800);
+    }
   };
 
   useEffect(() => {

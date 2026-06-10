@@ -15,8 +15,8 @@ export default function Navbar({ currentView, setCurrentView, user, isPremium, c
           <Sparkles className="w-6 h-6 text-amber-300 hidden" />
         </div>
         <div>
-          <span className="text-xl font-bold tracking-wide">Carlsoft Solution</span>
-          <p className="text-xs text-rose-200/80 font-light tracking-widest">PRODUCT IA</p>
+          <span className="text-xl font-bold tracking-wide">Carlsoft Product IA</span>
+          <p className="text-xs text-rose-200/80 font-light tracking-widest">System IA</p>
         </div>
       </div>
 

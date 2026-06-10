@@ -12,6 +12,14 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost', cast=Csv())
 
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='')
+STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='')
+
+STRIPE_PRICE_PYMES = config('STRIPE_PRICE_PYMES', default='')
+STRIPE_PRICE_CORPORATIVO = config('STRIPE_PRICE_CORPORATIVO', default='')
+
+FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5173')
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
