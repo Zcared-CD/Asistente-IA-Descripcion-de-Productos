@@ -4,6 +4,8 @@ import { MessageCircle, Send, Bot } from 'lucide-react';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
 import NetworkParticles from '../components/ui/NetworkParticles';
+import soporteImg from "../assets/soporte.png";
+
 
 export default function Contact({ currentView, setCurrentView, user, isPremium, credits, handleLogout }) {
   const [formData, setFormData] = useState({
@@ -187,8 +189,8 @@ export default function Contact({ currentView, setCurrentView, user, isPremium, 
           )}
           </div>
           <div className="w-full lg:w-1/2 bg-gray-100 relative min-h-[300px]">
-            <img src="RUTA_IMAGEN_CONTACTO.png" alt="Soporte Técnico" className="absolute inset-0 w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
-            <div className="hidden absolute inset-0 w-full h-full bg-rose-50 flex-col items-center justify-center text-center p-8 border-l border-gray-200">
+            <img  src={soporteImg} alt="Soporte Técnico" className="absolute inset-0 w-full h-full object-cover object-center" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+            <div className="hidden absolute inset-0 w-full h-full bg-rose-50 flex-col items-center justify-center text-center p-8 border-l border-gray-200"  onError={(e) => e.target.style.display = "none"}>
               <Bot className="w-20 h-20 text-[#6b2122]/30 mb-4" />
               <h3 className="text-xl font-bold text-[#6b2122]">Soporte Carlsoft</h3>
               <p className="text-sm text-gray-500 mt-2">Agrega aquí tu imagen reemplazando "RUTA_IMAGEN_CONTACTO.png"</p>

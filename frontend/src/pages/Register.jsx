@@ -3,6 +3,7 @@ import { User, Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, Phone, Sparkles }
 import api from '../api/axios';
 import GoogleButton from '../components/forms/GoogleButton';
 import NetworkParticles from '../components/ui/NetworkParticles';
+import  RegistroImg from "../assets/Registrarse.png";
 
 // Añadimos setIsPremium y setCredits a las props
 export default function Register({ setUser, setIsPremium, setCredits, setCurrentView }) {
@@ -119,7 +120,7 @@ export default function Register({ setUser, setIsPremium, setCredits, setCurrent
         <div className="w-full max-w-lg bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-white/20 p-8 transform transition-all duration-500 animate-[translateY_0.3s_ease-out]">
           <div className="text-center mb-6">
             <div className="inline-flex items-center justify-center w-20 h-20 bg-[#6b2122]/10 rounded-full mb-4 overflow-hidden border border-rose-100">
-              <img src="RUTA_DE_TU_IMAGEN_REGISTRO_AQUI.png" alt="Icono Registro" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
+              <img src={RegistroImg}alt="Icono Registro" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
               <Sparkles className="w-8 h-8 text-[#6b2122] hidden" />
             </div>
             <h2 className="text-3xl font-extrabold text-gray-800">Crea tu cuenta</h2>
