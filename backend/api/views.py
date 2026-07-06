@@ -21,6 +21,15 @@ import stripe
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+import cloudinary
+import cloudinary.uploader
+from google.genai import types
+import requests
+from decimal import Decimal
+from openai import OpenAI
+from django.core.files.base import ContentFile
+import uuid
+import base64
 
 
 @method_decorator(ratelimit(key="ip", rate="3/m", method="POST"), name="post")
@@ -36,6 +45,171 @@ class ProfileView(generics.RetrieveAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+class OpenpayCreateChargeView(APIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def post(self, request):
+        user = request.user
+
+        plan = request.data.get("plan", "").upper()
+        token_id = request.data.get("token_id")
+        device_session_id = request.data.get("device_session_id")
+
+        planes = {
+            "PYMES": Decimal("10.00"),
+            "CORPORATIVO": Decimal("59.00"),
+        }
+
+        if plan not in planes:
+            return Response({"error": "Plan no válido."}, status=400)
+
+        if not token_id or not device_session_id:
+            return Response(
+                {"error": "Falta token_id o device_session_id."},
+                status=400,
+            )
+
+        if not settings.OPENPAY_MERCHANT_ID or not settings.OPENPAY_PRIVATE_KEY:
+            return Response(
+                {"error": "Openpay no está configurado."},
+                status=500,
+            )
+
+        url = f"{settings.OPENPAY_API_URL}/{settings.OPENPAY_MERCHANT_ID}/charges"
+
+        payload = {
+            "method": "card",
+            "source_id": token_id,
+            "amount": float(planes[plan]),
+            "currency": "MXN",
+            "description": f"Suscripción {plan} - Carlsoft Product IA",
+            "order_id": f"CARLSOFT-{user.id}-{timezone.now().strftime('%Y%m%d%H%M%S')}",
+            "device_session_id": device_session_id,
+            "customer": {
+                "name": user.first_name or user.username,
+                "last_name": user.last_name or "Cliente",
+                "email": user.email,
+                "phone_number": user.telefono or "0000000000",
+            },
+        }
+
+        try:
+            response = requests.post(
+                url,
+                json=payload,
+                auth=(settings.OPENPAY_PRIVATE_KEY, ""),
+                timeout=30,
+            )
+
+            data = response.json()
+
+            if response.status_code not in [200, 201]:
+                return Response(
+                    {
+                        "error": "Openpay rechazó el cargo.",
+                        "detalle": data,
+                    },
+                    status=400,
+                )
+
+            user.is_premium = True
+            user.plan = plan
+            user.creditos = 0
+            user.fecha_inicio_plan = timezone.now().date()
+            user.fecha_fin_plan = timezone.now().date() + timedelta(days=30)
+            user.subscription_status = "active"
+            user.cancel_at_period_end = False
+            user.save(
+                update_fields=[
+                    "is_premium",
+                    "plan",
+                    "creditos",
+                    "fecha_inicio_plan",
+                    "fecha_fin_plan",
+                    "subscription_status",
+                    "cancel_at_period_end",
+                ]
+            )
+
+            return Response(
+                {
+                    "message": "Pago aprobado y plan activado.",
+                    "openpay_charge": data,
+                    "plan": plan,
+                    "is_premium": user.is_premium,
+                    "fecha_fin_plan": user.fecha_fin_plan,
+                },
+                status=200,
+            )
+
+        except requests.RequestException as e:
+            print("ERROR OPENPAY:", e)
+            return Response(
+                {"error": "No se pudo conectar con Openpay."},
+                status=500,
+            )
+
+
+def subir_imagen_a_cloudinary(image_bytes, nombre_archivo):
+    try:
+        resultado = cloudinary.uploader.upload(
+            image_bytes,
+            folder="carlsoft/publicidad",
+            public_id=nombre_archivo,
+            resource_type="image",
+            overwrite=True,
+        )
+
+        return resultado.get("secure_url")
+
+    except Exception as e:
+        print("ERROR CLOUDINARY:", e)
+        return None
+
+
+def obtener_limites_usuario(user):
+    plan = (user.plan or "FREE").upper()
+
+    if not user.is_premium:
+        plan = "FREE"
+
+    limites = {
+        "FREE": {
+            "descripciones": 5,
+            "imagenes": 1,
+            "pdf": False,
+        },
+        "PYMES": {
+            "descripciones": 20,
+            "imagenes": 8,
+            "pdf": True,
+        },
+        "CORPORATIVO": {
+            "descripciones": 100,
+            "imagenes": 50,
+            "pdf": True,
+        },
+    }
+
+    return limites.get(plan, limites["FREE"])
+
+
+def reiniciar_uso_diario_si_es_necesario(user):
+    hoy = timezone.now().date()
+
+    if user.fecha_uso != hoy:
+        user.descripciones_hoy = 0
+        user.imagenes_hoy = 0
+        user.fecha_uso = hoy
+        user.save(
+            update_fields=[
+                "descripciones_hoy",
+                "imagenes_hoy",
+                "fecha_uso",
+            ]
+        )
 
 
 @method_decorator(ratelimit(key="user", rate="20/h", method="POST"), name="post")
@@ -56,6 +230,22 @@ class GenerarDescripcionView(APIView):
         tono = request.data.get("tono", "").strip()
         instruccion_imagen = request.data.get("instruccion_imagen", "").strip()
         imagen_producto = request.FILES.get("imagen_producto")
+
+        if imagen_producto:
+            tipos_permitidos = ["image/jpeg", "image/png", "image/webp"]
+            max_size = 5 * 1024 * 1024  # 5MB
+
+            if imagen_producto.content_type not in tipos_permitidos:
+                return Response(
+                    {"error": "Solo se permiten imágenes JPG, PNG o WEBP."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if imagen_producto.size > max_size:
+                return Response(
+                    {"error": "La imagen no puede superar los 5MB."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         if not nombre_producto:
             return Response(
@@ -97,6 +287,18 @@ class GenerarDescripcionView(APIView):
 
         with transaction.atomic():
             user.refresh_from_db()
+
+            reiniciar_uso_diario_si_es_necesario(user)
+
+            limites = obtener_limites_usuario(user)
+
+            if user.descripciones_hoy >= limites["descripciones"]:
+                return Response(
+                    {
+                        "error": f"Has alcanzado tu límite diario de {limites['descripciones']} descripciones."
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
 
             if not user.is_premium:
                 if user.creditos <= 0:
@@ -264,6 +466,9 @@ class GenerarDescripcionView(APIView):
                 descripcion_generada=descripcion_generada,
             )
 
+            user.descripciones_hoy += 1
+            user.save(update_fields=["descripciones_hoy"])
+
         return Response(
             {
                 "producto": ProductoGeneradoSerializer(producto).data,
@@ -312,7 +517,7 @@ class ActivarPremiumView(APIView):
 
         user.is_premium = True
         user.plan = plan.upper()
-        user.creditos = 999999
+        user.creditos = 0
         user.fecha_inicio_plan = timezone.now().date()
         user.fecha_fin_plan = timezone.now().date() + timedelta(days=30)
 
@@ -380,14 +585,30 @@ class ChatbotView(APIView):
         contexto_usuario = "Usuario no autenticado."
 
         if user:
-            contexto_usuario = f"""
+            reiniciar_uso_diario_si_es_necesario(user)
+            limites = obtener_limites_usuario(user)
+
+            if user.is_premium:
+                contexto_usuario = f"""
 Usuario autenticado:
 Nombre: {user.first_name} {user.last_name}
 Email: {user.email}
-Plan: {getattr(user, 'plan', 'FREE')}
-Premium: {"Sí" if user.is_premium else "No"}
-Créditos disponibles: {user.creditos}
+Plan: {user.plan}
+Premium: Sí
+Descripciones usadas hoy: {user.descripciones_hoy} de {limites['descripciones']}
+Imágenes usadas hoy: {user.imagenes_hoy} de {limites['imagenes']}
 Fecha fin del plan: {user.fecha_fin_plan}
+"""
+            else:
+                contexto_usuario = f"""
+Usuario autenticado:
+Nombre: {user.first_name} {user.last_name}
+Email: {user.email}
+Plan: FREE
+Premium: No
+Créditos disponibles: {user.creditos}
+Descripciones usadas hoy: {user.descripciones_hoy} de {limites['descripciones']}
+Imágenes usadas hoy: {user.imagenes_hoy} de {limites['imagenes']}
 """
 
         try:
@@ -465,10 +686,21 @@ class UserStatusView(APIView):
             if dias_restantes < 0:
                 user.is_premium = False
                 user.plan = "FREE"
-                user.creditos = 0
-                user.save(update_fields=["is_premium", "plan", "creditos"])
+                user.creditos = 3
+                user.subscription_status = "expired"
+                user.cancel_at_period_end = False
 
-                aviso = "Tu plan premium ha expirado."
+                user.save(
+                    update_fields=[
+                        "is_premium",
+                        "plan",
+                        "creditos",
+                        "subscription_status",
+                        "cancel_at_period_end",
+                    ]
+                )
+
+                aviso = "Tu plan premium ha expirado. Volviste al plan gratuito."
             elif dias_restantes <= 5:
                 aviso = f"Tu plan vence en {dias_restantes} día(s)."
             else:
@@ -482,6 +714,9 @@ class UserStatusView(APIView):
             else:
                 aviso = f"Tienes {user.creditos} créditos disponibles."
 
+        reiniciar_uso_diario_si_es_necesario(user)
+        limites = obtener_limites_usuario(user)
+
         return Response(
             {
                 "nombre": user.first_name,
@@ -494,6 +729,13 @@ class UserStatusView(APIView):
                 "cancel_at_period_end": user.cancel_at_period_end,
                 "dias_restantes": dias_restantes,
                 "aviso": aviso,
+                "descripciones_hoy": user.descripciones_hoy,
+                "imagenes_hoy": user.imagenes_hoy,
+                "limite_descripciones": limites["descripciones"],
+                "limite_imagenes": limites["imagenes"],
+                "pdf_habilitado": limites["pdf"],
+                "uso_descripciones_texto": f"{user.descripciones_hoy} de {limites['descripciones']}",
+                "uso_imagenes_texto": f"{user.imagenes_hoy} de {limites['imagenes']}",
             }
         )
 
@@ -505,11 +747,23 @@ class GenerarImagenPublicitariaView(APIView):
     def post(self, request, producto_id):
         user = request.user
 
+        reiniciar_uso_diario_si_es_necesario(user)
+        limites = obtener_limites_usuario(user)
+
+        if user.imagenes_hoy >= limites["imagenes"]:
+            return Response(
+                {
+                    "error": f"Has alcanzado tu límite diario de {limites['imagenes']} imágenes publicitarias."
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         try:
             producto = ProductoGenerado.objects.get(id=producto_id, usuario=user)
         except ProductoGenerado.DoesNotExist:
             return Response(
-                {"error": "Producto no encontrado."}, status=status.HTTP_404_NOT_FOUND
+                {"error": "Producto no encontrado."},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
         if not settings.GEMINI_API_KEY:
@@ -518,10 +772,16 @@ class GenerarImagenPublicitariaView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        try:
-            client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        if not settings.OPENAI_API_KEY:
+            return Response(
+                {"error": "OpenAI API Key no configurada."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
-            prompt = f"""
+        try:
+            gemini_client = genai.Client(api_key=settings.GEMINI_API_KEY)
+
+            prompt_gemini = f"""
 Eres un experto en dirección de arte, fotografía comercial, diseño publicitario, ecommerce y marketing visual.
 
 Tu tarea es crear un prompt profesional para generar una imagen publicitaria del producto.
@@ -551,11 +811,11 @@ Instrucciones del usuario para la imagen:
 {producto.instruccion_imagen or "Crear una imagen publicitaria limpia, moderna y profesional."}
 
 Reglas:
-- No generes la imagen todavía.
-- Genera únicamente un prompt listo para usar en un modelo de generación de imágenes.
+- Genera únicamente un prompt listo para OpenAI Images.
 - El prompt debe describir fondo, iluminación, composición, estilo, encuadre y ambiente.
 - Debe servir para ecommerce, retail o catálogo.
-- No incluyas texto dentro de la imagen, logos inventados ni marcas falsas.
+- No incluyas texto dentro de la imagen.
+- No inventes logos ni marcas falsas.
 - Si la marca fue proporcionada, menciona que se respete el producto original sin inventar elementos.
 - Escribe el prompt en español.
 - Máximo 120 palabras.
@@ -564,30 +824,79 @@ Formato:
 PROMPT IMAGEN:
 """
 
-            response = client.models.generate_content(
-                model="gemini-2.5-flash", contents=prompt
+            response = gemini_client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt_gemini,
             )
 
             prompt_generado = response.text.strip()
 
         except Exception as e:
-            print("ERROR PROMPT IMAGEN:", e)
+            print("ERROR PROMPT GEMINI IMAGEN:", e)
 
             prompt_generado = (
-                f"PROMPT IMAGEN:\n"
                 f"Fotografía publicitaria profesional de {producto.nombre_producto}, "
                 f"presentado en un escenario limpio y moderno para ecommerce. "
                 f"Fondo neutro, iluminación suave de estudio, sombras naturales, "
-                f"composición centrada, alta calidad visual, estilo catálogo premium."
+                f"composición centrada, alta calidad visual, estilo catálogo premium. "
+                f"Sin texto, sin logos inventados, sin marcas falsas."
+            )
+
+        try:
+            openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
+
+            imagen_response = openai_client.images.generate(
+                model="gpt-image-1",
+                prompt=prompt_generado,
+                size="1024x1024",
+                quality="medium",
+                n=1,
+            )
+
+            image_base64 = imagen_response.data[0].b64_json
+            image_bytes = base64.b64decode(image_base64)
+
+            nombre_archivo = f"publicidad_{producto.id}_{uuid.uuid4().hex}.png"
+
+            producto.imagen_publicitaria.save(
+                nombre_archivo,
+                ContentFile(image_bytes),
+                save=False,
+            )
+
+        except Exception as e:
+            print("ERROR OPENAI IMAGE:", e)
+
+            producto.prompt_imagen_publicitaria = prompt_generado
+            producto.save(update_fields=["prompt_imagen_publicitaria"])
+
+            return Response(
+                {
+                    "error": "No se pudo generar la imagen publicitaria real.",
+                    "prompt_imagen_publicitaria": prompt_generado,
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
         producto.prompt_imagen_publicitaria = prompt_generado
-        producto.save(update_fields=["prompt_imagen_publicitaria"])
+        producto.save(
+            update_fields=[
+                "prompt_imagen_publicitaria",
+                "imagen_publicitaria",
+            ]
+        )
+
+        user.imagenes_hoy += 1
+        user.save(update_fields=["imagenes_hoy"])
 
         return Response(
             {
-                "message": "Prompt de imagen publicitaria generado correctamente.",
+                "message": "Imagen publicitaria generada correctamente.",
                 "producto": ProductoGeneradoSerializer(producto).data,
+                "prompt_imagen_publicitaria": producto.prompt_imagen_publicitaria,
+                "imagen_publicitaria_url": producto.imagen_publicitaria.url
+                if producto.imagen_publicitaria
+                else None,
             },
             status=status.HTTP_200_OK,
         )
@@ -677,9 +986,7 @@ class StripeWebhookView(APIView):
 
         try:
             event = stripe.Webhook.construct_event(
-                payload,
-                sig_header,
-                settings.STRIPE_WEBHOOK_SECRET
+                payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
             )
         except ValueError:
             return Response({"error": "Payload inválido."}, status=400)
@@ -690,7 +997,9 @@ class StripeWebhookView(APIView):
             session = event["data"]["object"]
 
             metadata = session.metadata
-            user_id = metadata.user_id if metadata and hasattr(metadata, "user_id") else None
+            user_id = (
+                metadata.user_id if metadata and hasattr(metadata, "user_id") else None
+            )
             plan = metadata.plan if metadata and hasattr(metadata, "plan") else None
 
             subscription_id = session.subscription
@@ -706,7 +1015,7 @@ class StripeWebhookView(APIView):
 
             user.is_premium = True
             user.plan = plan
-            user.creditos = 999999
+            user.creditos = 0
             user.stripe_customer_id = customer_id
             user.stripe_subscription_id = subscription_id
             user.subscription_status = "active"
@@ -714,29 +1023,28 @@ class StripeWebhookView(APIView):
             user.fecha_inicio_plan = timezone.now().date()
             user.fecha_fin_plan = timezone.now().date() + timedelta(days=30)
 
-            user.save(update_fields=[
-                "is_premium",
-                "plan",
-                "creditos",
-                "stripe_customer_id",
-                "stripe_subscription_id",
-                "subscription_status",
-                "cancel_at_period_end",
-                "fecha_inicio_plan",
-                "fecha_fin_plan",
-            ])
+            user.save(
+                update_fields=[
+                    "is_premium",
+                    "plan",
+                    "creditos",
+                    "stripe_customer_id",
+                    "stripe_subscription_id",
+                    "subscription_status",
+                    "cancel_at_period_end",
+                    "fecha_inicio_plan",
+                    "fecha_fin_plan",
+                ]
+            )
 
         elif event["type"] == "customer.subscription.deleted":
             subscription = event["data"]["object"]
             subscription_id = subscription.id
 
             try:
-                user = CustomUser.objects.get(
-                    stripe_subscription_id=subscription_id
-                )
+                user = CustomUser.objects.get(stripe_subscription_id=subscription_id)
             except CustomUser.DoesNotExist:
                 return Response({"status": "user_not_found"}, status=200)
-            
 
             user.is_premium = False
             user.plan = "FREE"
@@ -745,26 +1053,25 @@ class StripeWebhookView(APIView):
             user.fecha_fin_plan = None
             user.cancel_at_period_end = False
 
-            user.save(update_fields=[
-                "is_premium",
-                "plan",
-                "creditos",
-                "subscription_status",
-                "fecha_fin_plan",
-                "cancel_at_period_end",
-            ])
+            user.save(
+                update_fields=[
+                    "is_premium",
+                    "plan",
+                    "creditos",
+                    "subscription_status",
+                    "fecha_fin_plan",
+                    "cancel_at_period_end",
+                ]
+            )
 
         elif event["type"] == "customer.subscription.updated":
             subscription = event["data"]["object"]
-            
+
             subscription_id = subscription.id
             status_subscription = subscription.status
-            
 
             try:
-                user = CustomUser.objects.get(
-                    stripe_subscription_id=subscription_id
-                )
+                user = CustomUser.objects.get(stripe_subscription_id=subscription_id)
             except CustomUser.DoesNotExist:
                 return Response({"status": "user_not_found"}, status=200)
 
@@ -778,16 +1085,19 @@ class StripeWebhookView(APIView):
                 user.fecha_fin_plan = None
                 user.cancel_at_period_end = False
 
-            user.save(update_fields=[
-                "is_premium",
-                "plan",
-                "creditos",
-                "subscription_status",
-                "fecha_fin_plan",
-                "cancel_at_period_end",
-            ])
+            user.save(
+                update_fields=[
+                    "is_premium",
+                    "plan",
+                    "creditos",
+                    "subscription_status",
+                    "fecha_fin_plan",
+                    "cancel_at_period_end",
+                ]
+            )
 
         return Response({"status": "success"}, status=200)
+
 
 class CrearPortalClienteView(APIView):
     permission_classes = (permissions.IsAuthenticated,)

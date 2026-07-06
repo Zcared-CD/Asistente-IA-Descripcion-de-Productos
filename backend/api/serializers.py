@@ -72,6 +72,7 @@ class ProductoGeneradoSerializer(serializers.ModelSerializer):
             'instruccion_imagen',
             'prompt_imagen_publicitaria',
             'imagen_publicitaria',
+            "imagen_publicitaria_url",
         )
         read_only_fields = (
             'id',

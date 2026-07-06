@@ -17,6 +17,7 @@ from .views import (
     CrearCheckoutSessionView,
     StripeWebhookView,
     CrearPortalClienteView,
+    OpenpayCreateChargeView,
 )
 
 urlpatterns = [
@@ -57,5 +58,10 @@ urlpatterns = [
         "stripe/customer-portal/",
         CrearPortalClienteView.as_view(),
         name="stripe_customer_portal",
+    ),
+    path(
+        "openpay/create-charge/",
+        OpenpayCreateChargeView.as_view(),
+        name="openpay_create_charge",
     ),
 ]

@@ -15,6 +15,9 @@ class CustomUser(AbstractUser):
     stripe_subscription_id = models.CharField(max_length=255, blank=True, null=True)
     subscription_status = models.CharField(max_length=50, default="inactive")
     cancel_at_period_end = models.BooleanField(default=False)
+    descripciones_hoy = models.PositiveIntegerField(default=0)
+    imagenes_hoy = models.PositiveIntegerField(default=0)
+    fecha_uso = models.DateField(null=True, blank=True)
 
     def __str__(self):
         return self.email or self.username
@@ -33,6 +36,8 @@ class ProductoGenerado(models.Model):
     tono = models.CharField(max_length=100, blank=True, null=True)
     instruccion_imagen = models.TextField(blank=True, null=True)
     prompt_imagen_publicitaria = models.TextField(blank=True, null=True)
+    imagen_publicitaria_url = models.URLField(blank=True, null=True)
+    
 
     imagen_publicitaria = models.ImageField(
         upload_to="publicidad/", blank=True, null=True

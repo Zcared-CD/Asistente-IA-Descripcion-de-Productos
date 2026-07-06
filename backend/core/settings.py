@@ -1,6 +1,7 @@
 from pathlib import Path
 from datetime import timedelta
 from decouple import config, Csv
+import cloudinary
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -19,6 +20,16 @@ STRIPE_PRICE_PYMES = config('STRIPE_PRICE_PYMES', default='')
 STRIPE_PRICE_CORPORATIVO = config('STRIPE_PRICE_CORPORATIVO', default='')
 
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5173')
+CLOUDINARY_CLOUD_NAME = config('CLOUDINARY_CLOUD_NAME', default='')
+CLOUDINARY_API_KEY = config('CLOUDINARY_API_KEY', default='')
+CLOUDINARY_API_SECRET = config('CLOUDINARY_API_SECRET', default='')
+
+cloudinary.config(
+    cloud_name=CLOUDINARY_CLOUD_NAME,
+    api_key=CLOUDINARY_API_KEY,
+    api_secret=CLOUDINARY_API_SECRET,
+    secure=True
+)
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -27,6 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'cloudinary',
+    'cloudinary_storage',
     'rest_framework',
     'corsheaders',
     'api',
@@ -110,7 +123,22 @@ CORS_ALLOWED_ORIGINS = config(
     cast=Csv()
 )
 
+OPENPAY_MERCHANT_ID = config("OPENPAY_MERCHANT_ID", default="")
+OPENPAY_PRIVATE_KEY = config("OPENPAY_PRIVATE_KEY", default="")
+OPENPAY_PUBLIC_KEY = config("OPENPAY_PUBLIC_KEY", default="")
+OPENPAY_SANDBOX = config("OPENPAY_SANDBOX", default=True, cast=bool)
+
+OPENPAY_API_URL = (
+    "https://sandbox-api.openpay.mx/v1"
+    if OPENPAY_SANDBOX
+    else "https://api.openpay.mx/v1"
+)
+
+OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
+
 AUTH_USER_MODEL = 'api.CustomUser'
+
+RATELIMIT_ENABLE = True
 
 
 REST_FRAMEWORK = {
@@ -134,12 +162,27 @@ RATELIMIT_USE_CACHE = "default"
 
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "carlsoft-rate-limit",
     }
 }
 
 SILENCED_SYSTEM_CHECKS = ["django_ratelimit.E003", "django_ratelimit.W001"]
 
 MEDIA_URL = '/media/'
-
 MEDIA_ROOT = BASE_DIR / 'media'
+
+CLOUDINARY_STORAGE = {
+    "CLOUD_NAME": CLOUDINARY_CLOUD_NAME,
+    "API_KEY": CLOUDINARY_API_KEY,
+    "API_SECRET": CLOUDINARY_API_SECRET,
+}
+
+STORAGES = {
+    "default": {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
