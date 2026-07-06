@@ -60,6 +60,8 @@ export default function Home({
   const [loadingAdvertising, setLoadingAdvertising] = useState(false);
   const [result, setResult] = useState(null);
   const [advertisingImage, setAdvertisingImage] = useState(null);
+  const [alertModal, setAlertModal] = useState(null);
+  const [imagePreviewModal, setImagePreviewModal] = useState(null);
 
   const handleImageChange = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -130,19 +132,40 @@ export default function Home({
           "https://images.unsplash.com/photo-1505740420928-5e560c06d30e",
       });
     } catch (error) {
+      console.error(error);
+
+      const mensaje =
+        error.response?.data?.error ||
+        "Error al generar la descripción.";
+
       if (error.response?.status === 403) {
-        alert("No tienes créditos disponibles.");
-        setCurrentView("costs");
+        setAlertModal({
+          title: "Límite alcanzado",
+          message: mensaje,
+          actionText: "Ver planes",
+          action: () => {
+            setAlertModal(null);
+            setCurrentView("costs");
+          },
+        });
       } else if (error.response?.status === 401) {
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
 
-        alert("Tu sesión expiró.");
-
-        setCurrentView("login");
+        setAlertModal({
+          title: "Sesión expirada",
+          message: "Tu sesión expiró. Inicia sesión nuevamente.",
+          actionText: "Iniciar sesión",
+          action: () => {
+            setAlertModal(null);
+            setCurrentView("login");
+          },
+        });
       } else {
-        console.error(error);
-        alert("Error al generar la descripción.");
+        setAlertModal({
+          title: "Error",
+          message: mensaje,
+        });
       }
     } finally {
       setIsGenerating(false);
@@ -162,11 +185,46 @@ export default function Home({
         `/productos/${result.producto.id}/generar-imagen-publicitaria/`
       );
 
-      setAdvertisingPrompt(response.data.producto.prompt_imagen_publicitaria);
-      setAdvertisingImage(result.imageUrl);
+      console.log("RESPUESTA IMAGEN IA:", response.data);
+
+      const imagenGenerada =
+        response.data.imagen_publicitaria_url ||
+        response.data.producto?.imagen_publicitaria_url ||
+        response.data.producto?.imagen_publicitaria;
+
+      setAdvertisingPrompt(
+        response.data.prompt_imagen_publicitaria ||
+        response.data.producto?.prompt_imagen_publicitaria
+      );
+
+      if (imagenGenerada) {
+        setAdvertisingImage(imagenGenerada);
+      } else {
+        alert("La imagen se generó, pero no llegó la URL desde el backend.");
+      }
     } catch (error) {
       console.error(error);
-      alert("No se pudo generar el prompt publicitario.");
+
+      const mensaje =
+        error.response?.data?.error ||
+        "No se pudo generar la imagen publicitaria.";
+
+      if (error.response?.status === 403) {
+        setAlertModal({
+          title: "Límite de imágenes alcanzado",
+          message: mensaje,
+          actionText: "Ver planes",
+          action: () => {
+            setAlertModal(null);
+            setCurrentView("costs");
+          },
+        });
+      } else {
+        setAlertModal({
+          title: "Error al generar imagen",
+          message: mensaje,
+        });
+      }
     } finally {
       setLoadingAdvertising(false);
     }
@@ -737,13 +795,24 @@ export default function Home({
                           <img
                             src={advertisingImage}
                             alt="Banner Publicitario"
-                            className="w-full h-[350px] object-cover"
+                            onClick={() => setImagePreviewModal(advertisingImage)}
+                            className="w-full h-[350px] object-contain bg-white cursor-zoom-in"
                           />
                         </div>
 
                         <p className="text-xs text-gray-500 mt-2">
                           Vista previa del banner publicitario.
                         </p>
+                        <a
+                          href={advertisingImage}
+                          download={`banner-publicitario-${result?.producto?.id || "ia"}.png`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-4 inline-flex items-center justify-center gap-2 bg-[#6b2122] text-white px-5 py-3 rounded-xl font-bold hover:bg-[#52191a] transition"
+                        >
+                          <Download className="w-5 h-5" />
+                          Descargar imagen
+                        </a>
                       </div>
                     )}
 
@@ -774,7 +843,71 @@ export default function Home({
           </div>
         </div>
       </main>
+      {alertModal && (
+        <div className="fixed inset-0 z-[99999] bg-black/60 flex items-center justify-center px-4">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center shadow-2xl animate-fade-in">
+            <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-rose-100 flex items-center justify-center">
+              <Lock className="w-10 h-10 text-[#6b2122]" />
+            </div>
 
+            <h3 className="text-2xl font-extrabold text-[#6b2122] mb-3">
+              {alertModal.title}
+            </h3>
+
+            <p className="text-gray-600 mb-6">
+              {alertModal.message}
+            </p>
+
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => setAlertModal(null)}
+                className="px-5 py-3 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200"
+              >
+                Cerrar
+              </button>
+
+              {alertModal.actionText && (
+                <button
+                  onClick={alertModal.action}
+                  className="px-5 py-3 rounded-xl bg-[#6b2122] text-white font-bold hover:bg-[#52191a]"
+                >
+                  {alertModal.actionText}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {imagePreviewModal && (
+        <div className="fixed inset-0 z-[99999] bg-black/80 flex items-center justify-center px-4">
+          <div className="relative max-w-5xl w-full">
+            <button
+              onClick={() => setImagePreviewModal(null)}
+              className="absolute -top-12 right-0 text-white text-4xl font-bold"
+            >
+              ×
+            </button>
+
+            <img
+              src={imagePreviewModal}
+              alt="Imagen completa"
+              className="w-full max-h-[85vh] object-contain rounded-2xl bg-white"
+            />
+
+            <a
+              href={imagePreviewModal}
+              download="banner-publicitario.png"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 mx-auto w-fit flex items-center gap-2 bg-white text-[#6b2122] px-5 py-3 rounded-xl font-bold"
+            >
+              <Download className="w-5 h-5" />
+              Descargar
+            </a>
+          </div>
+        </div>
+      )}
       <Footer setCurrentView={setCurrentView} />
     </div>
   );

@@ -69,6 +69,14 @@ export default function Navbar({ currentView, setCurrentView, user, isPremium, c
                 HISTORIAL
               </button>
             )}
+            {user && (
+                <button
+                  onClick={() => setCurrentView('subscription')}
+                  className="..."
+                >
+                  MI SUSCRIPCION
+                </button>
+              )}
           </div>
         )}
       </div>

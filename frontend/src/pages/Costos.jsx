@@ -43,7 +43,7 @@ export default function Costs({ currentView, setCurrentView, user, isPremium, cr
 
         <div className="relative z-10 py-12 px-6 max-w-4xl mx-auto text-center animate-fade-in">
           <h1 className="text-4xl font-extrabold mb-4">Planes y Precios</h1>
-          <p className="text-rose-100 font-light text-lg">Invierte en la mejor IA para tu negocio. Cancela en cualquier momento.</p>
+          <p className="text-rose-100 font-light text-lg">..</p>
         </div>
 
         <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none z-10" style={{ transform: 'translateY(1px)' }}>
@@ -72,7 +72,7 @@ export default function Costs({ currentView, setCurrentView, user, isPremium, cr
             <div className="text-4xl font-extrabold text-[#6b2122] mb-6">Gratis</div>
             <ul className="space-y-4 mb-8 flex-1">
               <li className="flex items-center gap-3 text-sm text-gray-700"><CheckCircle2 className="w-5 h-5 text-green-500" /> 5 descripciones por día</li>
-              <li className="flex items-center gap-3 text-sm text-gray-700"><CheckCircle2 className="w-5 h-5 text-green-500" /> 3 imágenes con marca de agua al día</li>
+              <li className="flex items-center gap-3 text-sm text-gray-700"><CheckCircle2 className="w-5 h-5 text-green-500" /> 1 imágen con marca de agua al día</li>
               <li className="flex items-center gap-3 text-sm text-gray-400 opacity-60"><X className="w-5 h-5" /> Exportación en PDF</li>
             </ul>
             <button
@@ -95,7 +95,7 @@ export default function Costs({ currentView, setCurrentView, user, isPremium, cr
             <p className="text-amber-300 text-xs mb-6 font-semibold">Cancela cuando quieras</p>
             <ul className="space-y-4 mb-8 flex-1">
               <li className="flex items-center gap-3 text-sm text-white"><CheckCircle2 className="w-5 h-5 text-amber-300" /> 20 descripciones al día</li>
-              <li className="flex items-center gap-3 text-sm text-white"><CheckCircle2 className="w-5 h-5 text-amber-300" /> 10 imágenes sin marca de agua al día</li>
+              <li className="flex items-center gap-3 text-sm text-white"><CheckCircle2 className="w-5 h-5 text-amber-300" /> 8 imágenes sin marca de agua al día</li>
               <li className="flex items-center gap-3 text-sm text-white"><CheckCircle2 className="w-5 h-5 text-amber-300" /> Exportación de PDF habilitada</li>
             </ul>
             <button

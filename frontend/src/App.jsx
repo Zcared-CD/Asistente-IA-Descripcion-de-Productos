@@ -8,6 +8,7 @@ import Costos from './pages/Costos';
 import Checkout from './pages/Checkout';
 import Contacto from './pages/Contacto';
 import Historial from './pages/Historial';
+import MiSuscripcion from './pages/MiSuscripcion';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('home');
@@ -54,7 +55,7 @@ export default function App() {
 
         setIsPremium(profileData.is_premium);
         setCredits(profileData.creditos);
-        
+
 
         const statusResponse = await api.get('/user-status/');
         const statusData = statusResponse.data;
@@ -137,6 +138,7 @@ export default function App() {
       {currentView === 'checkout' && <Checkout {...pageProps} />}
       {currentView === 'contact' && <Contacto {...pageProps} />}
       {currentView === 'historial' && <Historial {...pageProps} />}
+      {currentView === 'subscription' && (<MiSuscripcion {...pageProps} />)}
 
       {/* El Chatbot flota sobre todas las páginas */}
       <Chatbot />

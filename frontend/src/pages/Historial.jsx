@@ -7,6 +7,7 @@ import {
   Trash2,
   Search,
   Image as ImageIcon,
+  Download,
 } from 'lucide-react';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
@@ -19,6 +20,16 @@ export default function Historial({ currentView, setCurrentView, user, isPremium
   const [busqueda, setBusqueda] = useState('');
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
   const [mostrarModal, setMostrarModal] = useState(false);
+  const [imagenCompleta, setImagenCompleta] = useState(null);
+
+  const obtenerImagenPrincipal = (item) => {
+    return (
+      item.imagen_publicitaria ||
+      item.imagen_publicitaria_url ||
+      item.imagen_producto ||
+      null
+    );
+  };
 
   useEffect(() => {
     const cargarHistorial = async () => {
@@ -84,6 +95,27 @@ export default function Historial({ currentView, setCurrentView, user, isPremium
     return texto.includes(busqueda.toLowerCase());
   });
 
+  const descargarImagen = async (url, nombre = 'imagen-publicitaria.png') => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+
+      link.href = blobUrl;
+      link.download = nombre;
+      document.body.appendChild(link);
+      link.click();
+
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error(error);
+      window.open(url, '_blank');
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen w-full">
       <header className="relative bg-[#6b2122] text-[#fdfbf7] overflow-hidden shadow-xl shrink-0 w-full">
@@ -100,7 +132,7 @@ export default function Historial({ currentView, setCurrentView, user, isPremium
         <div className="relative z-10 py-12 px-6 max-w-4xl mx-auto text-center animate-fade-in">
           <h1 className="text-4xl font-extrabold mb-4">Historial de Descripciones</h1>
           <p className="text-rose-100 font-light text-lg">
-            Consulta, copia y administra tus productos generados.
+            .
           </p>
         </div>
 
@@ -151,11 +183,12 @@ export default function Historial({ currentView, setCurrentView, user, isPremium
               >
                 <div className="grid grid-cols-1 md:grid-cols-4">
                   <div className="md:col-span-1 bg-[#fdfbf7] min-h-[220px] flex items-center justify-center border-r border-gray-100">
-                    {item.imagen_producto ? (
+                    {obtenerImagenPrincipal(item) ? (
                       <img
-                        src={item.imagen_producto}
+                        src={obtenerImagenPrincipal(item)}
                         alt={item.nombre_producto}
-                        className="w-full h-full object-cover"
+                        onClick={() => setImagenCompleta(obtenerImagenPrincipal(item))}
+                        className="w-full h-full object-contain bg-white cursor-zoom-in"
                       />
                     ) : (
                       <div className="text-center text-gray-400">
@@ -264,12 +297,28 @@ export default function Historial({ currentView, setCurrentView, user, isPremium
 
             <div className="p-6">
 
-              {productoSeleccionado.imagen_producto && (
-                <img
-                  src={productoSeleccionado.imagen_producto}
-                  alt={productoSeleccionado.nombre_producto}
-                  className="w-full h-72 object-cover rounded-xl mb-6"
-                />
+              {obtenerImagenPrincipal(productoSeleccionado) && (
+                <div className="mb-6">
+                  <img
+                    src={obtenerImagenPrincipal(productoSeleccionado)}
+                    alt={productoSeleccionado.nombre_producto}
+                    onClick={() => setImagenCompleta(obtenerImagenPrincipal(productoSeleccionado))}
+                    className="w-full max-h-[420px] object-contain bg-white rounded-xl border cursor-zoom-in"
+                  />
+
+                  <button
+                    onClick={() =>
+                      descargarImagen(
+                        obtenerImagenPrincipal(productoSeleccionado),
+                        `imagen-${productoSeleccionado.nombre_producto}.png`
+                      )
+                    }
+                    className="mt-4 inline-flex items-center gap-2 bg-[#6b2122] text-white px-5 py-3 rounded-xl font-bold hover:bg-[#52191a]"
+                  >
+                    <Download className="w-5 h-5" />
+                    Descargar imagen
+                  </button>
+                </div>
               )}
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -319,6 +368,32 @@ export default function Historial({ currentView, setCurrentView, user, isPremium
               )}
 
             </div>
+          </div>
+        </div>
+      )}
+      {imagenCompleta && (
+        <div className="fixed inset-0 z-[99999] bg-black/80 flex items-center justify-center p-4">
+          <div className="relative bg-white rounded-2xl max-w-6xl w-full max-h-[92vh] p-4 shadow-2xl">
+            <button
+              onClick={() => setImagenCompleta(null)}
+              className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-[#6b2122] text-white text-2xl font-bold flex items-center justify-center hover:bg-[#52191a]"
+            >
+              ×
+            </button>
+
+            <img
+              src={imagenCompleta}
+              alt="Imagen completa"
+              className="w-full max-h-[75vh] object-contain rounded-xl bg-white"
+            />
+
+            <button
+              onClick={() => descargarImagen(imagenCompleta, 'imagen-publicitaria.png')}
+              className="mt-4 mx-auto w-fit flex items-center gap-2 bg-[#6b2122] text-white px-5 py-3 rounded-xl font-bold hover:bg-[#52191a]"
+            >
+              <Download className="w-5 h-5" />
+              Descargar imagen
+            </button>
           </div>
         </div>
       )}
