@@ -5,7 +5,7 @@ from datetime import timedelta
 
 
 class CustomUser(AbstractUser):
-    telefono = models.CharField(max_length=20, blank=True, null=True)
+    telefono = models.CharField(max_length=10, blank=True, null=True)
     is_premium = models.BooleanField(default=False)
     creditos = models.IntegerField(default=3)  # Damos 3 créditos gratis por defecto
     plan = models.CharField(max_length=20, default="FREE")
