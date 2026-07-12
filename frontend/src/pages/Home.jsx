@@ -270,7 +270,7 @@ export default function Home({
         <div className="relative z-10 py-16 px-6 max-w-5xl mx-auto text-center animate-fade-in">
           <div className="inline-flex items-center gap-2 bg-black/20 text-rose-100 px-4 py-1.5 rounded-full text-sm font-medium mb-6 backdrop-blur-sm border border-white/10 shadow-sm">
             <Brain className="w-4 h-4 text-amber-300" />
-            GENERADOR INTELIGENTE DE PRODUCTOS
+            GENERADOR INTELIGENTE DE PRODUCTOS CARLITOS
           </div>
           <h1 className="text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
             Crea Descripciones Perfectas <br />
