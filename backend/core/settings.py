@@ -120,6 +120,11 @@ REST_FRAMEWORK = {
     )
 }
 
+CSRF_TRUSTED_ORIGINS = config(
+    "CSRF_TRUSTED_ORIGINS",
+    default="https://carlsoft.site,https://www.carlsoft.site",
+    cast=Csv(),
+)
 
 CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',
