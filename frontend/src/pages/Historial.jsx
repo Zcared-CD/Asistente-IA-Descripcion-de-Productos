@@ -8,6 +8,7 @@ import {
   Search,
   Image as ImageIcon,
   Download,
+  X,
 } from 'lucide-react';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
@@ -376,9 +377,9 @@ export default function Historial({ currentView, setCurrentView, user, isPremium
           <div className="relative bg-white rounded-2xl max-w-6xl w-full max-h-[92vh] p-4 shadow-2xl">
             <button
               onClick={() => setImagenCompleta(null)}
-              className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-[#6b2122] text-white text-2xl font-bold flex items-center justify-center hover:bg-[#52191a]"
+              className="absolute top-4 right-4 z-10 w-12 h-12 rounded-full bg-[#6b2122] text-white flex items-center justify-center hover:bg-[#52191a] transition"
             >
-              ×
+              <X className="w-6 h-6" strokeWidth={3} />
             </button>
 
             <img
