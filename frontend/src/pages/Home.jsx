@@ -272,11 +272,11 @@ export default function Home({
             <Brain className="w-4 h-4 text-amber-300" />
             GENERADOR INTELIGENTE DE PRODUCTOS
           </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
-            Crea Descripciones Perfectas <br />
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
+            Crea Descripciones Perfectas <br className="hidden sm:block" />
             con Inteligencia Artificial
           </h1>
-          <p className="text-lg text-rose-100 max-w-2xl mx-auto font-light mb-12">
+          <p className="text-sm sm:text-base md:text-lg text-rose-100 max-w-2xl mx-auto font-light mb-8 sm:mb-12">
             Sube tu producto, añade unas palabras clave y deja que nuestro motor
             de IA genere descripciones, etiquetas y presentaciones listas para
             tus campañas.
@@ -388,7 +388,7 @@ export default function Home({
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-20 flex-1 w-full animate-fade-in">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 relative z-20 flex-1 w-full animate-fade-in">
         <div className="lg:col-span-5 bg-gradient-to-br from-white to-rose-50/50 rounded-2xl shadow-xl border border-rose-100 p-8 h-fit relative transform transition-all duration-500 hover:shadow-2xl hover:-translate-y-1">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-1 bg-[#6b2122] rounded-b-lg opacity-30"></div>
           <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-[#6b2122]">
