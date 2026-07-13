@@ -192,7 +192,8 @@ export default function Checkout({
   };
 
   return (
-    <div className="flex flex-col min-h-screen w-full">
+    <div className="flex flex-col min-h-screen w-full overflow-x-hidden">
+      {/* HEADER */}
       <header className="relative bg-[#6b2122] text-[#fdfbf7] overflow-hidden shadow-xl shrink-0 w-full">
         <NetworkParticles />
 
@@ -205,19 +206,22 @@ export default function Checkout({
           handleLogout={handleLogout}
         />
 
-        <div className="relative z-10 py-12 px-6 max-w-4xl mx-auto text-center animate-fade-in">
-          <h1 className="text-4xl font-extrabold mb-4">Completar Compra</h1>
-          <p className="text-rose-100 font-light text-lg">
+        <div className="relative z-10 pt-8 pb-14 sm:pt-10 sm:pb-16 lg:py-12 px-4 sm:px-6 max-w-4xl mx-auto text-center animate-fade-in">
+          <h1 className="text-3xl sm:text-4xl font-extrabold mb-3 sm:mb-4 leading-tight">
+            Completar Compra
+          </h1>
+
+          <p className="text-rose-100 font-light text-sm sm:text-base lg:text-lg max-w-2xl mx-auto">
             Elige pagar con Stripe o con Openpay de forma segura.
           </p>
         </div>
 
         <div
           className="absolute bottom-0 left-0 w-full overflow-hidden leading-none z-10"
-          style={{ transform: 'translateY(1px)' }}
+          style={{ transform: "translateY(1px)" }}
         >
           <svg
-            className="relative block w-full h-12 md:h-20"
+            className="relative block w-full h-10 sm:h-12 md:h-20"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 1200 120"
             preserveAspectRatio="none"
@@ -230,112 +234,139 @@ export default function Checkout({
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-12 relative z-20 flex-1 w-full animate-fade-in">
+      {/* CONTENIDO */}
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10 lg:py-12 relative z-20 flex-1 w-full animate-fade-in min-w-0">
         <button
-          onClick={() => setCurrentView('costs')}
-          className="flex items-center gap-2 text-[#6b2122] font-semibold mb-6 hover:underline"
+          type="button"
+          onClick={() => setCurrentView("costs")}
+          className="flex items-center gap-2 text-[#6b2122] font-semibold mb-5 sm:mb-6 hover:underline text-sm sm:text-base"
         >
           &larr; Volver a Planes
         </button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-8 bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 rounded-xl bg-rose-50 flex items-center justify-center text-[#6b2122]">
-                <ShieldCheck className="w-7 h-7" />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start min-w-0">
+          {/* FORMULARIO */}
+          <section className="lg:col-span-8 min-w-0 bg-white rounded-2xl shadow-xl border border-gray-100 p-4 sm:p-6 lg:p-8">
+            <div className="flex items-start sm:items-center gap-3 mb-6">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-xl bg-rose-50 flex items-center justify-center text-[#6b2122]">
+                <ShieldCheck className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
 
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">
+              <div className="min-w-0">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
                   Método de pago
                 </h2>
-                <p className="text-sm text-gray-500">
-                  Stripe es recomendado para suscripción automática. Openpay es pago directo.
+
+                <p className="text-xs sm:text-sm text-gray-500 mt-1 leading-relaxed">
+                  Stripe es recomendado para suscripción automática. Openpay es
+                  pago directo.
                 </p>
               </div>
             </div>
 
-            <form onSubmit={handlePaymentSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handlePaymentSubmit} className="space-y-5 sm:space-y-6">
+              {/* SELECTOR DE MÉTODO */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                 <button
                   type="button"
-                  onClick={() => setPaymentMethod('stripe')}
-                  className={`text-left rounded-2xl border p-5 transition ${paymentMethod === 'stripe'
-                    ? 'border-[#6b2122] bg-rose-50 shadow-md'
-                    : 'border-gray-200 bg-white hover:bg-gray-50'
+                  onClick={() => setPaymentMethod("stripe")}
+                  className={`text-left rounded-2xl border p-4 sm:p-5 transition min-w-0 ${paymentMethod === "stripe"
+                      ? "border-[#6b2122] bg-rose-50 shadow-md"
+                      : "border-gray-200 bg-white hover:bg-gray-50"
                     }`}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="font-extrabold text-gray-800">Stripe Checkout</p>
-                    <span className="text-xs font-bold bg-green-50 text-green-700 border border-green-100 px-3 py-1 rounded-full">
+                  <div className="flex flex-col min-[380px]:flex-row min-[380px]:items-center min-[380px]:justify-between gap-2 mb-2">
+                    <p className="font-extrabold text-gray-800">
+                      Stripe Checkout
+                    </p>
+
+                    <span className="w-fit text-[10px] sm:text-xs font-bold bg-green-50 text-green-700 border border-green-100 px-2.5 sm:px-3 py-1 rounded-full">
                       Recomendado
                     </span>
                   </div>
-                  <p className="text-sm text-gray-500">
+
+                  <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">
                     Suscripción automática, portal de cliente y cancelación.
                   </p>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setPaymentMethod('openpay')}
-                  className={`text-left rounded-2xl border p-5 transition ${paymentMethod === 'openpay'
-                    ? 'border-[#6b2122] bg-rose-50 shadow-md'
-                    : 'border-gray-200 bg-white hover:bg-gray-50'
+                  onClick={() => setPaymentMethod("openpay")}
+                  className={`text-left rounded-2xl border p-4 sm:p-5 transition min-w-0 ${paymentMethod === "openpay"
+                      ? "border-[#6b2122] bg-rose-50 shadow-md"
+                      : "border-gray-200 bg-white hover:bg-gray-50"
                     }`}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="font-extrabold text-gray-800">Openpay Tarjeta</p>
-                    <span className="text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100 px-3 py-1 rounded-full">
+                  <div className="flex flex-col min-[380px]:flex-row min-[380px]:items-center min-[380px]:justify-between gap-2 mb-2">
+                    <p className="font-extrabold text-gray-800">
+                      Openpay Tarjeta
+                    </p>
+
+                    <span className="w-fit text-[10px] sm:text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100 px-2.5 sm:px-3 py-1 rounded-full">
                       Alternativa
                     </span>
                   </div>
-                  <p className="text-sm text-gray-500">
+
+                  <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">
                     Pago directo con tarjeta dentro de Carlsoft.
                   </p>
                 </button>
               </div>
 
-              {paymentMethod === 'openpay' && (
-                <div className="bg-[#fdfbf7] border border-rose-100 rounded-2xl p-6 space-y-5">
-                  <div className="flex justify-center mb-6">
-                    <Cards
-                      number={cardData.card_number}
-                      expiry={`${cardData.expiration_month}${cardData.expiration_year}`}
-                      cvc={cardData.cvv2}
-                      name={cardData.holder_name}
-                      focused={
-                        focused === 'card_number'
-                          ? 'number'
-                          : focused === 'holder_name'
-                            ? 'name'
-                            : focused === 'cvv2'
-                              ? 'cvc'
-                              : focused === 'expiration_month' || focused === 'expiration_year'
-                                ? 'expiry'
-                                : ''
-                      }
-                    />
+              {/* OPENPAY */}
+              {paymentMethod === "openpay" && (
+                <div className="bg-[#fdfbf7] border border-rose-100 rounded-2xl p-4 sm:p-6 space-y-5 min-w-0">
+                  {/* PREVISUALIZACIÓN DE TARJETA */}
+                  <div className="flex justify-center mb-4 sm:mb-6 overflow-hidden">
+                    <div className="w-full max-w-[350px] overflow-x-auto flex justify-center">
+                      <div className="origin-center scale-[0.82] min-[360px]:scale-90 sm:scale-100 shrink-0">
+                        <Cards
+                          number={cardData.card_number}
+                          expiry={`${cardData.expiration_month}${cardData.expiration_year}`}
+                          cvc={cardData.cvv2}
+                          name={cardData.holder_name}
+                          focused={
+                            focused === "card_number"
+                              ? "number"
+                              : focused === "holder_name"
+                                ? "name"
+                                : focused === "cvv2"
+                                  ? "cvc"
+                                  : focused === "expiration_month" ||
+                                    focused === "expiration_year"
+                                    ? "expiry"
+                                    : ""
+                          }
+                        />
+                      </div>
+                    </div>
                   </div>
 
-                  <h3 className="font-extrabold text-[#6b2122]">
+                  <h3 className="font-extrabold text-[#6b2122] text-base sm:text-lg">
                     Datos de tarjeta Openpay
                   </h3>
 
+                  {/* TITULAR */}
                   <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <User className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+
                     <input
                       name="holder_name"
                       value={cardData.holder_name}
                       onChange={handleChange}
+                      onFocus={(e) => setFocused(e.target.name)}
                       placeholder="Nombre del titular"
-                      className="w-full border border-gray-200 rounded-xl pl-12 pr-4 py-4 outline-none focus:ring-2 focus:ring-[#6b2122]/30"
+                      autoComplete="cc-name"
+                      className="w-full min-w-0 border border-gray-200 rounded-xl pl-11 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 text-sm sm:text-base outline-none focus:ring-2 focus:ring-[#6b2122]/30 focus:border-[#6b2122]"
                       required
                     />
                   </div>
 
+                  {/* NÚMERO DE TARJETA */}
                   <div className="relative">
-                    <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <CreditCard className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+
                     <input
                       name="card_number"
                       value={cardData.card_number}
@@ -343,18 +374,22 @@ export default function Checkout({
                       onFocus={(e) => setFocused(e.target.name)}
                       placeholder="4111 1111 1111 1111"
                       inputMode="numeric"
+                      autoComplete="cc-number"
                       maxLength={19}
-                      className="w-full border border-gray-200 rounded-xl pl-12 pr-24 py-4 outline-none tracking-wider focus:ring-2 focus:ring-[#6b2122]/30"
+                      className="w-full min-w-0 border border-gray-200 rounded-xl pl-11 sm:pl-12 pr-20 sm:pr-24 py-3 sm:py-4 text-sm sm:text-base outline-none tracking-wide sm:tracking-wider focus:ring-2 focus:ring-[#6b2122]/30 focus:border-[#6b2122]"
                       required
                     />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-[#6b2122] bg-rose-50 px-3 py-1 rounded-full">
+
+                    <span className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 text-[10px] sm:text-xs font-bold text-[#6b2122] bg-rose-50 px-2 sm:px-3 py-1 rounded-full">
                       {getCardType(cardData.card_number)}
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="relative">
-                      <CalendarDays className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  {/* VENCIMIENTO Y CVV */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+                    <div className="relative min-w-0">
+                      <CalendarDays className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400 pointer-events-none" />
+
                       <input
                         name="expiration_month"
                         value={cardData.expiration_month}
@@ -362,14 +397,16 @@ export default function Checkout({
                         onFocus={(e) => setFocused(e.target.name)}
                         placeholder="MM"
                         inputMode="numeric"
+                        autoComplete="cc-exp-month"
                         maxLength={2}
-                        className="w-full border border-gray-200 rounded-xl pl-12 pr-4 py-4 outline-none focus:ring-2 focus:ring-[#6b2122]/30"
+                        className="w-full min-w-0 border border-gray-200 rounded-xl pl-9 sm:pl-12 pr-2 sm:pr-4 py-3 sm:py-4 text-sm sm:text-base outline-none focus:ring-2 focus:ring-[#6b2122]/30 focus:border-[#6b2122]"
                         required
                       />
                     </div>
 
-                    <div className="relative">
-                      <CalendarDays className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <div className="relative min-w-0">
+                      <CalendarDays className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400 pointer-events-none" />
+
                       <input
                         name="expiration_year"
                         value={cardData.expiration_year}
@@ -377,14 +414,16 @@ export default function Checkout({
                         onFocus={(e) => setFocused(e.target.name)}
                         placeholder="YY"
                         inputMode="numeric"
+                        autoComplete="cc-exp-year"
                         maxLength={2}
-                        className="w-full border border-gray-200 rounded-xl pl-12 pr-4 py-4 outline-none focus:ring-2 focus:ring-[#6b2122]/30"
+                        className="w-full min-w-0 border border-gray-200 rounded-xl pl-9 sm:pl-12 pr-2 sm:pr-4 py-3 sm:py-4 text-sm sm:text-base outline-none focus:ring-2 focus:ring-[#6b2122]/30 focus:border-[#6b2122]"
                         required
                       />
                     </div>
 
-                    <div className="relative">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <div className="relative min-w-0 col-span-2 sm:col-span-1">
+                      <Lock className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400 pointer-events-none" />
+
                       <input
                         name="cvv2"
                         value={cardData.cvv2}
@@ -392,123 +431,142 @@ export default function Checkout({
                         onFocus={(e) => setFocused(e.target.name)}
                         placeholder="CVV"
                         inputMode="numeric"
+                        autoComplete="cc-csc"
                         maxLength={4}
                         type="password"
-                        className="w-full border border-gray-200 rounded-xl pl-12 pr-4 py-4 outline-none focus:ring-2 focus:ring-[#6b2122]/30"
+                        className="w-full min-w-0 border border-gray-200 rounded-xl pl-9 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 text-sm sm:text-base outline-none focus:ring-2 focus:ring-[#6b2122]/30 focus:border-[#6b2122]"
                         required
                       />
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-2 text-sm text-gray-500">
-                    <Lock className="w-4 h-4 mt-0.5" />
+                  <div className="flex items-start gap-2 text-xs sm:text-sm text-gray-500 leading-relaxed">
+                    <Lock className="w-4 h-4 mt-0.5 shrink-0" />
+
                     <p>
-                      Tu tarjeta se tokeniza con Openpay. Carlsoft no guarda datos bancarios.
+                      Tu tarjeta se tokeniza con Openpay. Carlsoft no guarda datos
+                      bancarios.
                     </p>
                   </div>
                 </div>
               )}
 
-              {paymentMethod === 'stripe' && (
-                <div className="bg-[#fdfbf7] border border-rose-100 rounded-2xl p-6">
-                  <h3 className="font-extrabold text-[#6b2122] mb-4">
+              {/* STRIPE */}
+              {paymentMethod === "stripe" && (
+                <div className="bg-[#fdfbf7] border border-rose-100 rounded-2xl p-4 sm:p-6">
+                  <h3 className="font-extrabold text-[#6b2122] mb-4 text-base sm:text-lg">
                     Pago con Stripe
                   </h3>
 
-                  <ul className="space-y-3 text-sm text-gray-700">
-                    <li className="flex items-center gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-green-500" />
-                      Suscripción mensual automática.
+                  <ul className="space-y-3 text-xs sm:text-sm text-gray-700">
+                    <li className="flex items-start gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+                      <span>Suscripción mensual automática.</span>
                     </li>
-                    <li className="flex items-center gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-green-500" />
-                      Administración desde portal de Stripe.
+
+                    <li className="flex items-start gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+                      <span>Administración desde portal de Stripe.</span>
                     </li>
-                    <li className="flex items-center gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-green-500" />
-                      Cancelación disponible.
+
+                    <li className="flex items-start gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+                      <span>Cancelación disponible.</span>
                     </li>
                   </ul>
                 </div>
               )}
 
+              {/* BOTÓN DE PAGO */}
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`w-full py-4 rounded-xl font-bold text-white transition shadow-lg flex items-center justify-center gap-2 ${isLoading
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-[#6b2122] hover:bg-[#52191a]'
+                className={`w-full min-h-12 py-3.5 sm:py-4 px-4 rounded-xl font-bold text-white text-sm sm:text-base transition shadow-lg flex items-center justify-center gap-2 text-center ${isLoading
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-[#6b2122] hover:bg-[#52191a] active:scale-[0.99]"
                   }`}
               >
-                {paymentMethod === 'stripe' ? (
-                  <Lock className="w-4 h-4" />
+                {paymentMethod === "stripe" ? (
+                  <Lock className="w-4 h-4 shrink-0" />
                 ) : (
-                  <CreditCard className="w-4 h-4" />
+                  <CreditCard className="w-4 h-4 shrink-0" />
                 )}
 
-                {isLoading
-                  ? paymentMethod === 'stripe'
-                    ? 'Redirigiendo a Stripe...'
-                    : 'Procesando pago...'
-                  : paymentMethod === 'stripe'
-                    ? 'Continuar a Stripe Checkout'
-                    : 'Pagar con Openpay'}
+                <span>
+                  {isLoading
+                    ? paymentMethod === "stripe"
+                      ? "Redirigiendo a Stripe..."
+                      : "Procesando pago..."
+                    : paymentMethod === "stripe"
+                      ? "Continuar a Stripe Checkout"
+                      : "Pagar con Openpay"}
+                </span>
 
-                {!isLoading && <ArrowRight className="w-5 h-5" />}
+                {!isLoading && (
+                  <ArrowRight className="w-5 h-5 shrink-0 hidden min-[360px]:block" />
+                )}
               </button>
             </form>
-          </div>
+          </section>
 
-          <div className="lg:col-span-4">
-            <div className="bg-[#fdfbf7] rounded-2xl shadow-lg border border-gray-200 p-6 sticky top-24">
+          {/* RESUMEN */}
+          <aside className="lg:col-span-4 min-w-0">
+            <div className="bg-[#fdfbf7] rounded-2xl shadow-lg border border-gray-200 p-4 sm:p-6 lg:sticky lg:top-24">
               <h3 className="text-lg font-bold text-gray-800 mb-4">
                 Resumen del Pedido
               </h3>
 
-              <div className="flex justify-between items-center pb-4 border-b border-gray-200 mb-4">
-                <div>
-                  <p className="font-bold text-[#6b2122]">
+              <div className="flex flex-col min-[360px]:flex-row min-[360px]:justify-between min-[360px]:items-start gap-3 pb-4 border-b border-gray-200 mb-4">
+                <div className="min-w-0">
+                  <p className="font-bold text-[#6b2122] break-words">
                     Suscripción {selectedPlan.name}
                   </p>
-                  <p className="text-xs text-gray-500">
-                    {paymentMethod === 'stripe'
-                      ? 'Cobro mensual recurrente'
-                      : 'Vigencia de 30 días'}
+
+                  <p className="text-xs text-gray-500 mt-1">
+                    {paymentMethod === "stripe"
+                      ? "Cobro mensual recurrente"
+                      : "Vigencia de 30 días"}
                   </p>
                 </div>
 
-                <span className="font-bold text-gray-800">
+                <span className="font-bold text-gray-800 whitespace-nowrap">
                   ${selectedPlan.price}.00
                 </span>
               </div>
 
-              <div className="space-y-3 text-sm text-gray-700 mb-6">
-                <p className="flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-green-500" />
-                  Activación automática Premium.
+              <div className="space-y-3 text-xs sm:text-sm text-gray-700 mb-6">
+                <p className="flex items-start gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+                  <span>Activación automática Premium.</span>
                 </p>
-                <p className="flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-green-500" />
-                  Límites diarios según tu plan.
+
+                <p className="flex items-start gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+                  <span>Límites diarios según tu plan.</span>
                 </p>
               </div>
 
-              <div className="flex justify-between items-center text-xl font-extrabold text-gray-900 pt-4 border-t border-gray-200">
+              <div className="flex flex-col min-[360px]:flex-row min-[360px]:justify-between min-[360px]:items-center gap-2 text-lg sm:text-xl font-extrabold text-gray-900 pt-4 border-t border-gray-200">
                 <span>Total</span>
-                <span>
-                  ${selectedPlan.price}.00{' '}
-                  <span className="text-sm font-normal text-gray-500">MXN</span>
+
+                <span className="whitespace-nowrap">
+                  ${selectedPlan.price}.00{" "}
+                  <span className="text-xs sm:text-sm font-normal text-gray-500">
+                    MXN
+                  </span>
                 </span>
               </div>
 
-              <div className="mt-6 bg-white rounded-xl border border-gray-100 p-4 text-xs text-gray-500">
-                Método seleccionado:{' '}
-                <strong>
-                  {paymentMethod === 'stripe' ? 'Stripe Checkout' : 'Openpay Tarjeta'}
+              <div className="mt-6 bg-white rounded-xl border border-gray-100 p-3 sm:p-4 text-xs text-gray-500 break-words">
+                Método seleccionado:{" "}
+                <strong className="text-gray-700">
+                  {paymentMethod === "stripe"
+                    ? "Stripe Checkout"
+                    : "Openpay Tarjeta"}
                 </strong>
               </div>
             </div>
-          </div>
+          </aside>
         </div>
       </main>
 
