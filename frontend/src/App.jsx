@@ -1,6 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import api from './api/axios';
 import Chatbot from './components/ui/Chatbot';
+import OfflineBanner from './components/OfflineBanner';
+
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -43,7 +46,6 @@ export default function App() {
 
       try {
         const response = await api.get('/profile/');
-
         const profileData = response.data;
 
         setUser({
@@ -56,12 +58,10 @@ export default function App() {
         setIsPremium(profileData.is_premium);
         setCredits(profileData.creditos);
 
-
         const statusResponse = await api.get('/user-status/');
         const statusData = statusResponse.data;
 
         setUserAviso(statusData.aviso);
-
         setIsPremium(statusData.is_premium);
         setUserPlan(statusData.plan);
         setFechaFinPlan(statusData.fecha_fin_plan);
@@ -87,7 +87,6 @@ export default function App() {
     loadUserProfile();
   }, []);
 
-
   const pageProps = {
     currentView,
     setCurrentView,
@@ -111,9 +110,12 @@ export default function App() {
   };
 
   return (
-
     <div className="min-h-screen bg-[#fdfbf7] font-sans text-gray-800 flex flex-col relative overflow-hidden">
 
+      {/* Aviso cuando no hay conexión a Internet */}
+      <OfflineBanner />
+
+      {/* Aviso del estado de suscripción */}
       {userAviso && user && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] bg-[#6b2122] text-white px-6 py-3 rounded-full shadow-2xl border border-white/20 animate-fade-in">
           <span className="font-semibold">
@@ -121,6 +123,7 @@ export default function App() {
               ? `Suscripción cancelada. Premium activo hasta ${fechaFinPlan}.`
               : userAviso}
           </span>
+
           <button
             onClick={() => setUserAviso(null)}
             className="ml-4 text-rose-200 hover:text-white font-bold"
@@ -138,14 +141,13 @@ export default function App() {
       {currentView === 'checkout' && <Checkout {...pageProps} />}
       {currentView === 'contact' && <Contacto {...pageProps} />}
       {currentView === 'historial' && <Historial {...pageProps} />}
-      {currentView === 'subscription' && (<MiSuscripcion {...pageProps} />)}
+      {currentView === 'subscription' && (
+        <MiSuscripcion {...pageProps} />
+      )}
 
-      {/* El Chatbot flota sobree todas las páginas */}
+      {/* El Chatbot flota sobre todas las páginas */}
       <Chatbot />
 
     </div>
-
-
-
   );
 }
