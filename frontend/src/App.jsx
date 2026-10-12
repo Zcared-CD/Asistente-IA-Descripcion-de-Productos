@@ -140,7 +140,7 @@ export default function App() {
       {currentView === 'historial' && <Historial {...pageProps} />}
       {currentView === 'subscription' && (<MiSuscripcion {...pageProps} />)}
 
-      {/* El Chatbot flota sobre todas laaas páginas */}
+      {/* El Chatbot flota sobre todas las páginas */}
       <Chatbot />
 
     </div>
