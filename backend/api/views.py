@@ -13,6 +13,10 @@ from .models import Contacto
 from .serializers import ContactoSerializer
 from django.conf import settings
 from google import genai
+from .notificaciones_automaticas import (
+    notificar_descripcion_generada,
+    notificar_imagen_generada,
+)
 from rest_framework.parsers import MultiPartParser, FormParser
 import base64
 from django.utils import timezone
@@ -468,6 +472,18 @@ class GenerarDescripcionView(APIView):
 
             user.descripciones_hoy += 1
             user.save(update_fields=["descripciones_hoy"])
+            
+            transaction.on_commit(
+                lambda usuario_id=user.pk,
+                       nombre=nombre_producto,
+                       saldo=user.creditos:
+                    notificar_descripcion_generada(
+                        usuario_id,
+                        nombre,
+                        saldo
+                    ),
+                robust=True,
+            )
 
         return Response(
             {
@@ -888,6 +904,16 @@ PROMPT IMAGEN:
 
         user.imagenes_hoy += 1
         user.save(update_fields=["imagenes_hoy"])
+        
+        transaction.on_commit(
+            lambda usuario_id=user.pk,
+                   nombre=producto.nombre_producto:
+                notificar_imagen_generada(
+                    usuario_id,
+                    nombre
+                ),
+            robust=True,
+        )
 
         return Response(
             {

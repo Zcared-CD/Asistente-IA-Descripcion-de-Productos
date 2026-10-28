@@ -66,3 +66,29 @@ class Contacto(models.Model):
 
     def __str__(self):
         return f"{self.nombre} {self.apellido}"
+    
+
+class PushSubscription(models.Model):
+    usuario = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name="push_subscriptions"
+    )
+
+    endpoint = models.TextField(unique=True)
+
+    p256dh = models.TextField()
+    auth = models.TextField()
+
+    fecha_creacion = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    fecha_actualizacion = models.DateTimeField(
+        auto_now=True
+    )
+
+    activa = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"Push de {self.usuario.username} - {self.id}"

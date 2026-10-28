@@ -1,8 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import api from './api/axios';
+
 import Chatbot from './components/ui/Chatbot';
 import OfflineBanner from './components/OfflineBanner';
+
 
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -24,6 +26,9 @@ export default function App() {
   const [fechaFinPlan, setFechaFinPlan] = useState(null);
   const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false);
 
+  // ==========================================
+  // CERRAR SESIÓN
+  // ==========================================
   const handleLogout = () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
@@ -38,6 +43,9 @@ export default function App() {
     setCancelAtPeriodEnd(false);
   };
 
+  // ==========================================
+  // CARGAR PERFIL DEL USUARIO
+  // ==========================================
   useEffect(() => {
     const loadUserProfile = async () => {
       const token = localStorage.getItem('access_token');
@@ -69,11 +77,12 @@ export default function App() {
         setCredits(statusData.creditos);
 
       } catch (error) {
-        console.error("ERROR CARGANDO PERFIL:", error);
+        console.error('ERROR CARGANDO PERFIL:', error);
 
         if (error.response?.status === 401) {
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
+
           setUser(null);
           setIsPremium(false);
           setCredits(3);
@@ -87,6 +96,9 @@ export default function App() {
     loadUserProfile();
   }, []);
 
+  // ==========================================
+  // PROPIEDADES COMPARTIDAS ENTRE PÁGINAS
+  // ==========================================
   const pageProps = {
     currentView,
     setCurrentView,
@@ -112,12 +124,13 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#fdfbf7] font-sans text-gray-800 flex flex-col relative overflow-hidden">
 
-      {/* Aviso cuando no hay conexión a Internet */}
+      {/* Aviso cuando no hay Internet */}
       <OfflineBanner />
 
       {/* Aviso del estado de suscripción */}
       {userAviso && user && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] bg-[#6b2122] text-white px-6 py-3 rounded-full shadow-2xl border border-white/20 animate-fade-in">
+
           <span className="font-semibold">
             {cancelAtPeriodEnd && fechaFinPlan
               ? `Suscripción cancelada. Premium activo hasta ${fechaFinPlan}.`
@@ -133,19 +146,43 @@ export default function App() {
         </div>
       )}
 
-      {/* Control de Vistas (Router Simulado) */}
-      {currentView === 'home' && <Home {...pageProps} />}
-      {currentView === 'login' && <Login {...pageProps} />}
-      {currentView === 'register' && <Register {...pageProps} />}
-      {currentView === 'costs' && <Costos {...pageProps} />}
-      {currentView === 'checkout' && <Checkout {...pageProps} />}
-      {currentView === 'contact' && <Contacto {...pageProps} />}
-      {currentView === 'historial' && <Historial {...pageProps} />}
+      {/* ======================================
+          CONTROL DE VISTAS
+      ====================================== */}
+
+      {currentView === 'home' && (
+        <Home {...pageProps} />
+      )}
+
+      {currentView === 'login' && (
+        <Login {...pageProps} />
+      )}
+
+      {currentView === 'register' && (
+        <Register {...pageProps} />
+      )}
+
+      {currentView === 'costs' && (
+        <Costos {...pageProps} />
+      )}
+
+      {currentView === 'checkout' && (
+        <Checkout {...pageProps} />
+      )}
+
+      {currentView === 'contact' && (
+        <Contacto {...pageProps} />
+      )}
+
+      {currentView === 'historial' && (
+        <Historial {...pageProps} />
+      )}
+
       {currentView === 'subscription' && (
         <MiSuscripcion {...pageProps} />
       )}
 
-      {/* El Chatbot flota sobre todas las páginas */}
+      {/* Chatbot disponible en todas las páginas */}
       <Chatbot />
 
     </div>

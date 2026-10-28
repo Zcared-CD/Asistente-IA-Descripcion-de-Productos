@@ -2,6 +2,7 @@ from pathlib import Path
 from datetime import timedelta
 from decouple import config, Csv
 import cloudinary
+import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -156,7 +157,10 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
-    )
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'push_test': '3/hour',
+    },
 }
 
 GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
@@ -195,3 +199,23 @@ STORAGES = {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
     },
 }
+
+
+# ==========================================
+# CONFIGURACIÓN DE NOTIFICACIONES WEB PUSH
+# ==========================================
+
+VAPID_PRIVATE_KEY = os.environ.get(
+    "VAPID_PRIVATE_KEY",
+    ""
+)
+
+VAPID_SUBJECT = os.environ.get(
+    "VAPID_SUBJECT",
+    ""
+)
+
+VAPID_PUBLIC_KEY = os.environ.get(
+    "VAPID_PUBLIC_KEY",
+    ""
+)

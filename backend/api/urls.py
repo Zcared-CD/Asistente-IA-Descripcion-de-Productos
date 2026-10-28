@@ -4,6 +4,13 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 
+from .push_views import (
+    PushPublicKeyView,
+    PushSubscribeView,
+    PushUnsubscribeView,
+    PushTestView,
+)
+
 from .views import (
     RegisterView,
     ProfileView,
@@ -64,4 +71,8 @@ urlpatterns = [
         OpenpayCreateChargeView.as_view(),
         name="openpay_create_charge",
     ),
+    path("push/public-key/", PushPublicKeyView.as_view(), name="push_public_key"),
+    path("push/subscribe/", PushSubscribeView.as_view(), name="push_subscribe"),
+    path("push/unsubscribe/", PushUnsubscribeView.as_view(), name="push_unsubscribe"),
+    path("push/test/", PushTestView.as_view(), name="push_test"),
 ]

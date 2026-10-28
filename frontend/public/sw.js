@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'carlsoft-v5';
+const CACHE_NAME = 'carlsoft-v7';
 
 const STATIC_ASSETS = [
   '/',
@@ -91,3 +91,96 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+self.addEventListener('push', (event) => {
+  console.log('Carlsoft: notificación PUSH recibida');
+
+  let data = {
+    title: 'Carlsoft Product IA',
+    body: '¡Tienes una nueva notificación!',
+    url: '/'
+  };
+
+  if (event.data) {
+    try {
+      const receivedData = event.data.json();
+
+      data = {
+        ...data,
+        ...receivedData
+      };
+
+    } catch (error) {
+      data.body = event.data.text();
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    tag: `carlsoft-${Date.now()}`,
+    data: {
+      url: data.url || '/'
+    }
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(
+      data.title,
+      options
+    )
+  );
+});
+
+
+
+/* ==========================================
+   AL HACER CLIC EN LA NOTIFICACIÓN
+========================================== */
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const requestedUrl = event.notification.data?.url || '/';
+
+  const targetUrl = new URL(
+    requestedUrl,
+    self.location.origin
+  );
+
+  // Seguridad: impedir URLs de otros dominios.
+  if (targetUrl.origin !== self.location.origin) {
+    return;
+  }
+
+  event.waitUntil((async () => {
+    const ventanas = await self.clients.matchAll({
+      type: 'window',
+      includeUncontrolled: true
+    });
+
+    // Buscar una pestaña abierta de Carlsoft.
+    for (const ventana of ventanas) {
+      const urlVentana = new URL(ventana.url);
+
+      if (urlVentana.origin === self.location.origin) {
+
+        // NO utilizar navigate(), porque recarga React.
+        await ventana.focus();
+
+        // Informar a React del clic.
+        ventana.postMessage({
+          type: 'CARLSOFT_NOTIFICACION_CLICK',
+          url: targetUrl.pathname + targetUrl.search
+        });
+
+        return;
+      }
+    }
+
+    // Si Carlsoft está cerrado, abrir una nueva ventana.
+    await self.clients.openWindow(targetUrl.href);
+  })());
+});
+
